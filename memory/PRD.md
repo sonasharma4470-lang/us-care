@@ -86,3 +86,29 @@ Build a Premium, Modern, Luxury, Professional Medical website for **Upadhyay Sha
 1. Provide real content (doctor names, clinic address, phone, images) — admin can now enter all of this via Settings page + CRUD tabs.
 2. Optionally integrate SMTP/WhatsApp for appointment delivery.
 3. File upload storage layer for appointment reports and admin media uploads.
+
+## Iteration 2 — Optimization (Feb 2026)
+- Added SafeImage component (`/app/frontend/src/components/SafeImage.jsx`) with SVG fallback + lazy loading + async decoding — used across Home/Services/Doctors/Gallery/ServiceDetail/DoctorDetail/Blog.
+- Mobile grids: services & doctors 2-col on mobile (was 1), gallery masonry 2-col on mobile (was 1); reduced mobile spacing/padding; prevented horizontal scroll (`overflow-x: hidden` on html/body).
+- Fixed 4 broken Unsplash image URLs (both in seed + live DB).
+- Added editable fields to Settings: `logo`, `footer_text`, `homepage_hero_title`, `homepage_hero_subtitle`, plus full Hero Slides editor UI in Admin.
+- Navbar/Footer now use `settings.logo` when set.
+- Tests: 36/36 backend pass; all mobile/desktop responsiveness verified.
+
+## Iteration 3 — Content Replacement (Feb 2026)
+- Wiped demo data, replaced with real CARE WITH US clinic content via `/app/backend/migrate_real_content.py`.
+- **Clinic**: CARE WITH US – Advanced Physiotherapy & Rehabilitation Centre, Pratap Nagar, Jaipur.
+- **Doctors**: 4 BPT female physiotherapists (Dr. Isha Upadhyay founder, Dr. Muskaan Singhal, Dr. Aaradhya Anand, Dr. Priya Rao).
+- **Services**: 9 real categories (Musculoskeletal, Orthopaedic Rehab, Neurological Rehab, Sports, Geriatric, Women's Health, Pediatric, Pain Management, Lifestyle & Wellness).
+- Real mission, vision, about, FAQs, business hours, hero slides using uploaded clinic photos.
+- Updated `index.html` title + meta + og:image + favicon.
+- Tests: 41/41 backend pass.
+
+## Iteration 4 — Logo Bug Fix + Branding Cleanup (Feb 2026)
+- Fixed wrong logo URL — swapped from clinic collage photo (`i9jxiigf`) to actual wooden CARE WITH US logo (`7g69kpcj`).
+- Fixed all hardcoded "Upadhyay Sharma" strings across 7 public page titles, AdminLayout sidebar, admin Login page, and SettingsContext default fallback — now everything reads from `settings.clinic_name` / `settings.logo` with 'CARE WITH US' fallback.
+- Tests: 43/43 backend pass; all frontend branding verified.
+
+## Notes for Fresh Deploy
+- If deploying to Render/Vercel with empty MongoDB Atlas, run `cd /app/backend && python3 migrate_real_content.py` once after first startup to load the real content.
+- `server.py` seed_content still contains demo Upadhyay Sharma data as a fallback (only runs on empty DB) — safe to leave as-is; the migrate script overrides it.

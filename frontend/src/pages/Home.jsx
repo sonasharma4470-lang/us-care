@@ -32,7 +32,7 @@ function HeroSlider({ slides }) {
           transition={{ duration: 1.2, ease: "easeOut" }}
           className="absolute inset-0"
         >
-          <img src={slide.image} alt={slide.heading} className="img-cover" loading={i === 0 ? "eager" : "lazy"} decoding="async" fetchpriority={i === 0 ? "high" : "auto"} />
+          <img src={slide.image} alt={slide.heading} className="img-cover" loading={i === 0 ? "eager" : "lazy"} decoding="async" fetchPriority={i === 0 ? "high" : "auto"} />
           <div className="absolute inset-0 hero-gradient-overlay" />
         </motion.div>
       </AnimatePresence>

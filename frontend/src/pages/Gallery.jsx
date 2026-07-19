@@ -9,7 +9,7 @@ export default function Gallery() {
   const [lightbox, setLightbox] = useState(null);
 
   useEffect(() => {
-    document.title = "Gallery — Upadhyay Sharma Physiotherapy";
+    document.title = "Gallery — CARE WITH US Physiotherapy";
     api.get("/gallery").then((r) => setItems(r.data));
   }, []);
 

@@ -8,7 +8,7 @@ export default function Blog() {
   const [items, setItems] = useState([]);
 
   useEffect(() => {
-    document.title = "Blog — Upadhyay Sharma Physiotherapy";
+    document.title = "Blog — CARE WITH US Physiotherapy";
     api.get("/blogs").then((r) => setItems(r.data));
   }, []);
 

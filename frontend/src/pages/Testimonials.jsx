@@ -14,7 +14,7 @@ export default function Testimonials() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    document.title = "Reviews — Upadhyay Sharma Physiotherapy";
+    document.title = "Reviews — CARE WITH US Physiotherapy";
     api.get("/testimonials").then((r) => setItems(r.data));
   }, []);
 

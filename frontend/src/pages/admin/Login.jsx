@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { LogIn, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
 export default function AdminLogin() {
   const { login } = useAuth();
+  const { settings } = useSettings();
   const navigate = useNavigate();
   const [email, setEmail] = useState("admin@upadhyaysharma.com");
   const [password, setPassword] = useState("");
@@ -36,8 +38,12 @@ export default function AdminLogin() {
         <img src="https://images.pexels.com/photos/16571733/pexels-photo-16571733.jpeg" alt="Clinic" className="img-cover" />
         <div className="absolute inset-0 hero-gradient-overlay" />
         <div className="absolute bottom-10 left-10 text-white max-w-md">
-          <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur grid place-items-center font-heading font-bold text-lg">US</div>
-          <h2 className="mt-6 font-heading text-4xl font-semibold">Upadhyay Sharma Clinic Admin</h2>
+          {settings.logo ? (
+            <img src={settings.logo} alt={settings.clinic_name || "Logo"} className="w-14 h-14 rounded-xl object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          ) : (
+            <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur grid place-items-center font-heading font-bold text-lg">CW</div>
+          )}
+          <h2 className="mt-6 font-heading text-4xl font-semibold">{settings.clinic_name || "CARE WITH US"} Admin</h2>
           <p className="mt-3 text-white/85">Manage appointments, doctors, services and content in one place.</p>
         </div>
       </div>

@@ -34,7 +34,7 @@ export default function Appointment() {
   const [success, setSuccess] = useState(null);
 
   useEffect(() => {
-    document.title = "Book Appointment — Upadhyay Sharma Physiotherapy";
+    document.title = "Book Appointment — CARE WITH US Physiotherapy";
     api.get("/services").then((r) => setServices(r.data));
     api.get("/doctors").then((r) => setDoctors(r.data));
   }, []);

@@ -2,6 +2,7 @@ import React from "react";
 import { Outlet, Link, NavLink, useNavigate } from "react-router-dom";
 import { LayoutDashboard, CalendarCheck, Stethoscope, Sparkles, Star, Image as ImageIcon, MessageSquare, FileText, Settings as SettingsIcon, LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import { Button } from "@/components/ui/button";
 
 const items = [
@@ -18,6 +19,7 @@ const items = [
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
+  const { settings } = useSettings();
   const navigate = useNavigate();
 
   const doLogout = async () => {
@@ -29,9 +31,13 @@ export default function AdminLayout() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-foreground flex" data-testid="admin-layout">
       <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-white dark:bg-slate-900 border-r border-border">
         <Link to="/admin" className="flex items-center gap-2 h-16 px-5 border-b border-border" data-testid="admin-sidebar-logo">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-accent grid place-items-center text-white font-heading font-bold">US</div>
+          {settings.logo ? (
+            <img src={settings.logo} alt={settings.clinic_name || "Logo"} className="w-9 h-9 rounded-lg object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          ) : (
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-accent grid place-items-center text-white font-heading font-bold">CW</div>
+          )}
           <div>
-            <div className="font-heading text-sm font-semibold">Upadhyay Sharma</div>
+            <div className="font-heading text-sm font-semibold truncate max-w-[140px]">{settings.clinic_name || "CARE WITH US"}</div>
             <div className="text-[10px] text-muted-foreground uppercase tracking-widest">Admin Panel</div>
           </div>
         </Link>

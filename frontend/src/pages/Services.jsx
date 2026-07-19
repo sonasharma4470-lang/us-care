@@ -14,7 +14,7 @@ export default function Services() {
   const [category, setCategory] = useState("All");
 
   useEffect(() => {
-    document.title = "Services — Upadhyay Sharma Physiotherapy";
+    document.title = "Services — CARE WITH US Physiotherapy";
     api.get("/services").then((r) => setServices(r.data));
   }, []);
 

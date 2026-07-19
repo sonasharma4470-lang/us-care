@@ -11,7 +11,7 @@ export default function Doctors() {
   const [doctors, setDoctors] = useState([]);
 
   useEffect(() => {
-    document.title = "Doctors — Upadhyay Sharma Physiotherapy";
+    document.title = "Doctors — CARE WITH US Physiotherapy";
     api.get("/doctors").then((r) => setDoctors(r.data));
   }, []);
 

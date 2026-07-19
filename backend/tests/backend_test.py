@@ -247,6 +247,29 @@ class TestRealContent:
         assert any("customer-assets" in (i.get("image") or "") for i in items), \
             "no gallery item uses customer-assets uploaded photo"
 
+    # iteration-4: verify logo bug-fix — settings.logo must be the wooden 'CARE WITH US' logo (7g69kpcj)
+    # and the reception/clinic collage (i9jxiigf) must be used in a gallery item, NOT as the logo.
+    def test_logo_is_wooden_carewithus_not_clinic_collage(self, api_client):
+        s = api_client.get(f"{BASE_URL}/api/settings").json()
+        logo = s.get("logo") or ""
+        assert "7g69kpcj" in logo, f"logo must contain 7g69kpcj (wooden CARE WITH US logo), got: {logo}"
+        assert "i9jxiigf" not in logo, f"logo must NOT be the clinic collage (i9jxiigf), got: {logo}"
+        # verify the logo URL loads
+        img_resp = requests.get(logo, timeout=10, stream=True)
+        assert img_resp.status_code == 200, f"logo returned HTTP {img_resp.status_code}"
+
+    def test_gallery_reception_uses_clinic_collage(self, api_client):
+        r = api_client.get(f"{BASE_URL}/api/gallery")
+        items = r.json()
+        reception = next((i for i in items if "Reception" in (i.get("title") or "") or "Clinic View" in (i.get("title") or "")), None)
+        assert reception is not None, "no reception/clinic view gallery item found"
+        assert "i9jxiigf" in (reception.get("image") or ""), \
+            f"Reception gallery item should use i9jxiigf clinic collage, got: {reception.get('image')}"
+        # No gallery item should point to the logo-only image (7g69kpcj)
+        for i in items:
+            assert "7g69kpcj" not in (i.get("image") or ""), \
+                f"gallery item '{i.get('title')}' incorrectly uses logo image 7g69kpcj"
+
 
 # --------- Appointments ---------
 class TestAppointments:

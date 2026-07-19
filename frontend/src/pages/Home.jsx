@@ -138,8 +138,8 @@ export default function Home() {
   const [faqs, setFaqs] = useState([]);
 
   useEffect(() => {
-    document.title = `${settings.clinic_name || "Upadhyay Sharma Physiotherapy"} — Premium Physiotherapy Care`;
-  }, [settings.clinic_name]);
+    document.title = `${settings.clinic_name || "CARE WITH US"} — ${settings.tagline || "Advanced Physiotherapy & Rehabilitation"}`;
+  }, [settings.clinic_name, settings.tagline]);
 
   useEffect(() => {
     (async () => {

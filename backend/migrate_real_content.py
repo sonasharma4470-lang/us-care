@@ -14,8 +14,8 @@ def slugify(s):
     s = re.sub(r'[^a-z0-9\s-]', '', s.lower()).strip()
     return re.sub(r'[\s-]+', '-', s) or uid()[:8]
 
-LOGO = "https://customer-assets-wrfwihn1.emergentagent.net/job_physio-care-platform/artifacts/i9jxiigf_WhatsApp%20Image%202026-07-19%20at%209.06.13%20PM.jpeg"
-CLINIC_WIDE = "https://customer-assets-wrfwihn1.emergentagent.net/job_physio-care-platform/artifacts/e926dqrl_WhatsApp%20Image%202026-07-19%20at%209.06.11%20PM.jpeg"
+LOGO = "https://customer-assets-wrfwihn1.emergentagent.net/job_physio-care-platform/artifacts/7g69kpcj_WhatsApp%20Image%202026-07-19%20at%209.06.11%20PM.jpeg"
+CLINIC_WIDE = "https://customer-assets-wrfwihn1.emergentagent.net/job_physio-care-platform/artifacts/i9jxiigf_WhatsApp%20Image%202026-07-19%20at%209.06.13%20PM.jpeg"
 TREATMENT_ROOM = "https://customer-assets-wrfwihn1.emergentagent.net/job_physio-care-platform/artifacts/9apliqvl_WhatsApp%20Image%202026-07-19%20at%209.06.12%20PM%20%281%29.jpeg"
 
 SERVICES = [

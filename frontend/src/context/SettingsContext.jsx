@@ -4,12 +4,12 @@ import api from "@/lib/api";
 const SettingsContext = createContext(null);
 
 const DEFAULT_SETTINGS = {
-  clinic_name: "Upadhyay Sharma Physiotherapist Clinic",
-  tagline: "Restore. Renew. Recover.",
-  phone: "+91 98765 43210",
-  whatsapp: "+91 98765 43210",
-  email: "care@upadhyaysharma.com",
-  address: "123 Health Avenue, Wellness District, India",
+  clinic_name: "CARE WITH US",
+  tagline: "Movement. Recovery. Rehabilitation.",
+  phone: "+91 00000 00000",
+  whatsapp: "+91 00000 00000",
+  email: "info@carewithus.in",
+  address: "3rd Floor, Aastha Hospital, Pratap Nagar, Jaipur, Rajasthan",
   social: {},
   counters: {},
   business_hours: {},

@@ -21,7 +21,7 @@ export default function About() {
 
       <section className="section">
         <div className="container-x grid lg:grid-cols-2 gap-12 items-center">
-          <img src="https://images.pexels.com/photos/20860588/pexels-photo-20860588.jpeg" alt="Physiotherapy" className="rounded-3xl w-full h-[500px] object-cover shadow-lg" />
+          <img src="https://images.pexels.com/photos/20860588/pexels-photo-20860588.jpeg" alt="Physiotherapy" className="rounded-3xl w-full h-[320px] sm:h-[400px] lg:h-[500px] object-cover shadow-lg" loading="lazy" decoding="async" />
           <div>
             <h2 className="font-heading text-3xl md:text-4xl font-semibold">Our Story</h2>
             <p className="mt-4 text-muted-foreground leading-relaxed">{settings.about}</p>

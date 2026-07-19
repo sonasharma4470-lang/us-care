@@ -66,8 +66,11 @@
     body {
         margin: 0;
         font-family: 'Outfit', system-ui, sans-serif;
+        overflow-x: hidden;
         @apply bg-background text-foreground antialiased;
     }
+    html { overflow-x: hidden; max-width: 100vw; }
+    img { max-width: 100%; height: auto; }
     h1, h2, h3, h4, h5, h6 {
         font-family: 'Playfair Display', Georgia, serif;
         letter-spacing: -0.01em;
@@ -95,7 +98,7 @@
 }
 
 .section {
-    @apply py-20 md:py-24;
+    @apply py-14 sm:py-20 md:py-24;
 }
 
 .container-x {

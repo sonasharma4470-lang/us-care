@@ -51,7 +51,7 @@ export default function Testimonials() {
                 </div>
                 <p className="text-sm text-foreground/85 leading-relaxed">“{t.review}”</p>
                 <div className="mt-5 flex items-center gap-3">
-                  {t.photo && <img src={t.photo} alt={t.name} className="w-11 h-11 rounded-full object-cover" />}
+                  {t.photo && <img src={t.photo} alt={t.name} className="w-11 h-11 rounded-full object-cover" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display='none'; }} />}
                   <div>
                     <div className="font-semibold text-sm">{t.name}</div>
                     <div className="text-xs text-muted-foreground">{t.treatment} • {t.city}</div>

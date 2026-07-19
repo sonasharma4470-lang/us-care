@@ -43,9 +43,13 @@ export default function Navbar() {
     >
       <div className="container-x flex items-center justify-between h-16 md:h-20">
         <Link to="/" className="flex items-center gap-2" data-testid="nav-logo-link">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent grid place-items-center text-white font-heading text-lg font-bold shadow-lg">
-            US
-          </div>
+          {settings.logo ? (
+            <img src={settings.logo} alt={settings.clinic_name || "Logo"} className="w-10 h-10 rounded-xl object-cover shadow-lg" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          ) : (
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent grid place-items-center text-white font-heading text-lg font-bold shadow-lg">
+              US
+            </div>
+          )}
           <div className="hidden sm:block leading-tight">
             <div className="font-heading font-semibold text-base text-foreground">{settings.clinic_name?.split(" ").slice(0, 2).join(" ") || "Upadhyay Sharma"}</div>
             <div className="text-[10px] text-muted-foreground tracking-widest uppercase">Physiotherapy Clinic</div>

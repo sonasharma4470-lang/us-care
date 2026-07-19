@@ -246,6 +246,7 @@ class SettingsIn(BaseModel):
     clinic_name: Optional[str] = None
     tagline: Optional[str] = None
     logo: Optional[str] = None
+    footer_text: Optional[str] = None
     address: Optional[str] = None
     phone: Optional[str] = None
     whatsapp: Optional[str] = None
@@ -259,6 +260,8 @@ class SettingsIn(BaseModel):
     about: Optional[str] = None
     counters: Optional[dict] = None
     hero_slides: Optional[List[dict]] = None
+    homepage_hero_title: Optional[str] = None
+    homepage_hero_subtitle: Optional[str] = None
 
 
 # --------- Auth Routes ---------
@@ -790,9 +793,9 @@ async def seed_content():
     if await db.services.count_documents({}) == 0:
         services_seed = [
             ("Back Pain Relief", "Pain Relief", "Comprehensive back pain treatment combining manual therapy, exercise and electrotherapy.", "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800"),
-            ("Neck & Cervical Care", "Pain Relief", "Targeted therapy for cervical spondylosis, stiffness, and neck pain.", "https://images.unsplash.com/photo-1666214277657-e0f0e0e4e46a?w=800"),
+            ("Neck & Cervical Care", "Pain Relief", "Targeted therapy for cervical spondylosis, stiffness, and neck pain.", "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800"),
             ("Sciatica Treatment", "Pain Relief", "Relieve sciatic nerve pain with focused decompression and rehab.", "https://images.unsplash.com/photo-1584515933487-779824d29309?w=800"),
-            ("Frozen Shoulder", "Pain Relief", "Restore shoulder mobility with graded manual therapy and exercise.", "https://images.unsplash.com/photo-1580281657527-47c8e5b5c37f?w=800"),
+            ("Frozen Shoulder", "Pain Relief", "Restore shoulder mobility with graded manual therapy and exercise.", "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=800"),
             ("Knee Pain & Arthritis", "Joint Care", "Reduce knee pain and restore function with personalized protocols.", "https://images.pexels.com/photos/5473183/pexels-photo-5473183.jpeg?w=800"),
             ("Sports Injury Rehab", "Sports Injury", "Return-to-play programs for athletes at every level.", "https://images.unsplash.com/photo-1649751361457-01d3a696c7e6?w=800"),
             ("ACL Rehabilitation", "Sports Injury", "Structured post-surgical ACL recovery for a strong comeback.", "https://images.pexels.com/photos/6111608/pexels-photo-6111608.jpeg?w=800"),
@@ -800,13 +803,13 @@ async def seed_content():
             ("Paralysis Rehab", "Neuro Rehab", "Comprehensive care for paralysis and neurological recovery.", "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800"),
             ("Post-Surgery Rehab", "Rehabilitation", "Accelerated recovery after orthopedic and joint surgeries.", "https://images.pexels.com/photos/20860610/pexels-photo-20860610.jpeg?w=800"),
             ("Home Visit Physiotherapy", "Home Visit", "Expert physiotherapy at your doorstep with full equipment.", "https://images.pexels.com/photos/7659877/pexels-photo-7659877.jpeg?w=800"),
-            ("Women's Physiotherapy", "Women Care", "Pre & post-natal care, pelvic floor and women-specific therapy.", "https://images.unsplash.com/photo-1518310383802-640c2de311b6?w=800"),
+            ("Women's Physiotherapy", "Women Care", "Pre & post-natal care, pelvic floor and women-specific therapy.", "https://images.unsplash.com/photo-1531983412531-1f49a365ffed?w=800"),
             ("Pediatric Physiotherapy", "Pediatric Care", "Compassionate care for children with developmental needs.", "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800"),
             ("Senior Citizen Care", "Senior Care", "Fall prevention, mobility and geriatric-focused rehab.", "https://images.unsplash.com/photo-1516307365426-bea591f05011?w=800"),
             ("Dry Needling", "Manual Therapy", "Trigger-point dry needling for stubborn muscular pain.", "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?w=800"),
             ("Electrotherapy", "Electrotherapy", "TENS, IFT, and modern electrotherapy for fast pain relief.", "https://images.pexels.com/photos/5473182/pexels-photo-5473182.jpeg?w=800"),
             ("Manual Therapy", "Manual Therapy", "Hands-on mobilization and manipulation techniques.", "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?w=800"),
-            ("Cupping Therapy", "Alternative", "Ancient cupping combined with modern physiotherapy.", "https://images.unsplash.com/photo-1600949067985-4d3f37c2fbb2?w=800"),
+            ("Cupping Therapy", "Alternative", "Ancient cupping combined with modern physiotherapy.", "https://images.unsplash.com/photo-1519824145371-296894a0daa9?w=800"),
             ("Laser Therapy", "Electrotherapy", "Low-level laser for tissue healing and inflammation.", "https://images.pexels.com/photos/5474025/pexels-photo-5474025.jpeg?w=800"),
             ("Ultrasound Therapy", "Electrotherapy", "Therapeutic ultrasound for deep tissue healing.", "https://images.pexels.com/photos/4506105/pexels-photo-4506105.jpeg?w=800"),
         ]

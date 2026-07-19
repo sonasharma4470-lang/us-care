@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import api from "@/lib/api";
+import SafeImage from "@/components/SafeImage";
 
 export default function Gallery() {
   const [items, setItems] = useState([]);
@@ -40,10 +41,10 @@ export default function Gallery() {
               </button>
             ))}
           </div>
-          <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
+          <div className="columns-2 lg:columns-3 gap-2 sm:gap-4 space-y-2 sm:space-y-4">
             {filtered.map((g, i) => (
-              <button key={g.id} onClick={() => setLightbox(g)} data-testid={`gallery-item-${g.id}`} className="block w-full overflow-hidden rounded-2xl break-inside-avoid group">
-                <img src={g.image} alt={g.title} className="w-full h-auto group-hover:scale-105" style={{ transitionProperty: "transform", transitionDuration: "500ms" }} />
+              <button key={g.id} onClick={() => setLightbox(g)} data-testid={`gallery-item-${g.id}`} className="block w-full overflow-hidden rounded-xl sm:rounded-2xl break-inside-avoid group">
+                <SafeImage src={g.image} alt={g.title} className="w-full h-auto group-hover:scale-105" style={{ transitionProperty: "transform", transitionDuration: "500ms" }} />
               </button>
             ))}
           </div>
@@ -56,7 +57,7 @@ export default function Gallery() {
           <button className="absolute top-4 right-4 w-11 h-11 rounded-full bg-white/10 text-white grid place-items-center" data-testid="gallery-lightbox-close">
             <X className="w-5 h-5" />
           </button>
-          <img src={lightbox.image} alt={lightbox.title} className="max-w-full max-h-[90vh] object-contain rounded-2xl" onClick={(e) => e.stopPropagation()} />
+          <img src={lightbox.image} alt={lightbox.title} className="max-w-full max-h-[90vh] object-contain rounded-2xl" onClick={(e) => e.stopPropagation()} loading="eager" />
         </div>
       )}
     </div>

@@ -313,6 +313,95 @@ class TestAdminCRUD:
         assert r.json().get("tagline") == "Restore. Renew. Recover."
 
 
+# --------- New optimization tests (iteration 2) ---------
+class TestSettingsNewFields:
+    """Verify new SettingsIn fields (logo, footer_text, homepage_hero_title/subtitle)."""
+
+    def test_update_new_fields_persist(self, api_client, auth_headers):
+        payload = {
+            "logo": "https://example.com/test-logo.png",
+            "footer_text": "TEST footer description text",
+            "homepage_hero_title": "TEST Hero Title",
+            "homepage_hero_subtitle": "TEST Hero Subtitle",
+        }
+        r = api_client.put(f"{BASE_URL}/api/admin/settings", headers=auth_headers, json=payload)
+        assert r.status_code == 200, r.text
+        body = r.json()
+        for k, v in payload.items():
+            assert body.get(k) == v, f"{k} not returned in PUT response"
+        # verify via public GET
+        g = api_client.get(f"{BASE_URL}/api/settings")
+        assert g.status_code == 200
+        gb = g.json()
+        for k, v in payload.items():
+            assert gb.get(k) == v, f"{k} not persisted / not returned in public settings"
+
+    def test_update_hero_slides(self, api_client, auth_headers):
+        slides = [
+            {
+                "image": "https://example.com/slide1.jpg",
+                "heading": "TEST Slide 1",
+                "subheading": "sub 1",
+                "description": "desc 1",
+                "cta_text": "Book",
+                "cta_link": "/appointment",
+            },
+            {
+                "image": "https://example.com/slide2.jpg",
+                "heading": "TEST Slide 2",
+                "subheading": "sub 2",
+                "description": "desc 2",
+                "cta_text": "Contact",
+                "cta_link": "/contact",
+            },
+        ]
+        r = api_client.put(
+            f"{BASE_URL}/api/admin/settings",
+            headers=auth_headers,
+            json={"hero_slides": slides},
+        )
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert isinstance(body.get("hero_slides"), list)
+        assert len(body["hero_slides"]) == 2
+        assert body["hero_slides"][0]["heading"] == "TEST Slide 1"
+        # public GET
+        g = api_client.get(f"{BASE_URL}/api/settings").json()
+        assert isinstance(g.get("hero_slides"), list)
+        assert len(g["hero_slides"]) == 2
+        assert g["hero_slides"][1]["cta_link"] == "/contact"
+
+
+class TestSeedImageFixes:
+    """Ensure previously broken image URLs no longer exist in seeded services."""
+
+    BROKEN_PATTERNS = [
+        "photo-1666214277657",
+        "photo-1580281657527",
+        "photo-1518310383802",
+        "photo-1600949067985",
+    ]
+
+    def test_no_broken_service_images(self, api_client):
+        r = api_client.get(f"{BASE_URL}/api/services")
+        assert r.status_code == 200
+        services = r.json()
+        assert isinstance(services, list) and len(services) > 0
+        offenders = []
+        for svc in services:
+            img = svc.get("image") or ""
+            hero = svc.get("hero_image") or ""
+            gallery = svc.get("gallery") or []
+            candidates = [img, hero] + (gallery if isinstance(gallery, list) else [])
+            for url in candidates:
+                if not isinstance(url, str):
+                    continue
+                for pat in self.BROKEN_PATTERNS:
+                    if pat in url:
+                        offenders.append({"service": svc.get("slug"), "url": url, "pattern": pat})
+        assert not offenders, f"Broken image URLs still present: {offenders}"
+
+
 # --------- Admin stats ---------
 class TestStats:
     def test_stats(self, api_client, auth_headers):

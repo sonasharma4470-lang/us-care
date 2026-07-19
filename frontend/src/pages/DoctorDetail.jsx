@@ -4,6 +4,7 @@ import { GraduationCap, Award, Clock, Languages, IndianRupee, ArrowLeft, Calenda
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { useSettings } from "@/context/SettingsContext";
+import SafeImage from "@/components/SafeImage";
 
 export default function DoctorDetail() {
   const { id } = useParams();
@@ -30,7 +31,7 @@ export default function DoctorDetail() {
         <div className="container-x grid lg:grid-cols-3 gap-10">
           <div className="lg:col-span-1">
             <div className="rounded-3xl overflow-hidden aspect-[4/5] bg-secondary">
-              <img src={doctor.photo} alt={doctor.name} className="img-cover" />
+              <SafeImage src={doctor.photo} alt={doctor.name} className="img-cover" eager />
             </div>
           </div>
           <div className="lg:col-span-2">

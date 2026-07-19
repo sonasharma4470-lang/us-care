@@ -7,6 +7,7 @@ import { useSettings } from "@/context/SettingsContext";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import SectionTitle from "@/components/SectionTitle";
+import SafeImage from "@/components/SafeImage";
 
 // ---------- Hero Slider ----------
 function HeroSlider({ slides }) {
@@ -31,7 +32,7 @@ function HeroSlider({ slides }) {
           transition={{ duration: 1.2, ease: "easeOut" }}
           className="absolute inset-0"
         >
-          <img src={slide.image} alt={slide.heading} className="img-cover" />
+          <img src={slide.image} alt={slide.heading} className="img-cover" loading={i === 0 ? "eager" : "lazy"} decoding="async" fetchpriority={i === 0 ? "high" : "auto"} />
           <div className="absolute inset-0 hero-gradient-overlay" />
         </motion.div>
       </AnimatePresence>
@@ -196,12 +197,12 @@ export default function Home() {
 
       {/* About */}
       <section className="section">
-        <div className="container-x grid lg:grid-cols-2 gap-12 items-center">
+        <div className="container-x grid lg:grid-cols-2 gap-8 md:gap-12 items-center">
           <div className="relative">
-            <img
+            <SafeImage
               src="https://images.pexels.com/photos/16571733/pexels-photo-16571733.jpeg"
               alt="Clinic interior"
-              className="rounded-3xl shadow-2xl w-full h-[500px] object-cover"
+              className="rounded-3xl shadow-2xl w-full h-[320px] sm:h-[400px] lg:h-[500px] object-cover"
             />
             <div className="absolute -bottom-6 -right-6 glass rounded-2xl p-5 max-w-[220px] hidden md:block">
               <div className="flex items-center gap-2 mb-1">
@@ -264,7 +265,7 @@ export default function Home() {
             title="Comprehensive physiotherapy, tailored to you."
             subtitle="From back pain to post-surgery rehab — evidence-based treatments delivered by world-class physiotherapists."
           />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 md:gap-6">
             {services.map((s, idx) => (
               <motion.div
                 key={s.id}
@@ -274,14 +275,14 @@ export default function Home() {
                 transition={{ duration: 0.5, delay: idx * 0.06 }}
               >
                 <Link to={`/services/${s.slug}`} data-testid={`home-service-card-${s.slug}`} className="group block bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-border shadow-sm hover:shadow-xl hover:-translate-y-1" style={{ transitionProperty: "transform, box-shadow", transitionDuration: "300ms" }}>
-                  <div className="aspect-[4/3] overflow-hidden">
-                    <img src={s.image} alt={s.name} className="img-cover group-hover:scale-105" style={{ transitionProperty: "transform", transitionDuration: "500ms" }} />
+                  <div className="aspect-[4/3] overflow-hidden bg-secondary">
+                    <SafeImage src={s.image} alt={s.name} className="img-cover group-hover:scale-105" style={{ transitionProperty: "transform", transitionDuration: "500ms" }} />
                   </div>
-                  <div className="p-5">
-                    <div className="text-[10px] uppercase tracking-widest text-primary font-semibold">{s.category}</div>
-                    <h3 className="mt-1 font-heading text-lg font-semibold">{s.name}</h3>
-                    <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{s.short_description}</p>
-                    <div className="mt-4 flex items-center text-primary text-sm font-medium">
+                  <div className="p-3 sm:p-5">
+                    <div className="text-[10px] uppercase tracking-widest text-primary font-semibold line-clamp-1">{s.category}</div>
+                    <h3 className="mt-1 font-heading text-sm sm:text-lg font-semibold line-clamp-2">{s.name}</h3>
+                    <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-muted-foreground line-clamp-2 hidden sm:block">{s.short_description}</p>
+                    <div className="mt-3 sm:mt-4 flex items-center text-primary text-xs sm:text-sm font-medium">
                       Learn more <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1" style={{ transitionProperty: "transform", transitionDuration: "200ms" }} />
                     </div>
                   </div>
@@ -301,7 +302,7 @@ export default function Home() {
       <section className="section bg-slate-50 dark:bg-slate-900/50">
         <div className="container-x">
           <SectionTitle eyebrow="Meet Our Experts" title="Certified physiotherapists you can trust." subtitle="Our team blends deep expertise with genuine warmth." />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 md:gap-6">
             {doctors.map((d, idx) => (
               <motion.div
                 key={d.id}
@@ -313,18 +314,18 @@ export default function Home() {
                 data-testid={`home-doctor-card-${d.id}`}
               >
                 <div className="aspect-[3/4] overflow-hidden bg-secondary">
-                  <img src={d.photo} alt={d.name} className="img-cover" />
+                  <SafeImage src={d.photo} alt={d.name} className="img-cover" />
                 </div>
-                <div className="p-5">
-                  <h3 className="font-heading text-lg font-semibold">{d.name}</h3>
-                  <div className="text-xs text-primary uppercase tracking-wider mt-1">{d.specialization}</div>
-                  <div className="text-xs text-muted-foreground mt-1">{d.qualification} • {d.experience}</div>
-                  <div className="mt-4 flex gap-2">
+                <div className="p-3 sm:p-5">
+                  <h3 className="font-heading text-sm sm:text-lg font-semibold line-clamp-1">{d.name}</h3>
+                  <div className="text-[10px] sm:text-xs text-primary uppercase tracking-wider mt-1 line-clamp-1">{d.specialization}</div>
+                  <div className="text-[10px] sm:text-xs text-muted-foreground mt-1 line-clamp-1 hidden sm:block">{d.qualification} • {d.experience}</div>
+                  <div className="mt-3 sm:mt-4 flex gap-1.5 sm:gap-2">
                     <Link to={`/doctors/${d.id}`} className="flex-1" data-testid={`home-doctor-view-${d.id}`}>
-                      <Button variant="outline" size="sm" className="w-full rounded-full">View</Button>
+                      <Button variant="outline" size="sm" className="w-full rounded-full text-xs h-8 sm:h-9">View</Button>
                     </Link>
                     <Link to="/appointment" className="flex-1" data-testid={`home-doctor-book-${d.id}`}>
-                      <Button size="sm" className="w-full rounded-full bg-primary">Book</Button>
+                      <Button size="sm" className="w-full rounded-full bg-primary text-xs h-8 sm:h-9">Book</Button>
                     </Link>
                   </div>
                 </div>
@@ -364,10 +365,10 @@ export default function Home() {
       <section className="section bg-slate-50 dark:bg-slate-900/50">
         <div className="container-x">
           <SectionTitle eyebrow="Our Space" title="A glimpse inside our clinic." />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
             {gallery.map((g, idx) => (
-              <div key={g.id} className={`overflow-hidden rounded-2xl ${idx % 5 === 0 ? "row-span-2 md:row-span-2 aspect-[3/5]" : "aspect-square"}`} data-testid={`home-gallery-${g.id}`}>
-                <img src={g.image} alt={g.title} className="img-cover hover:scale-105" style={{ transitionProperty: "transform", transitionDuration: "500ms" }} />
+              <div key={g.id} className={`overflow-hidden rounded-xl sm:rounded-2xl ${idx % 5 === 0 ? "row-span-2 md:row-span-2 aspect-[3/5]" : "aspect-square"}`} data-testid={`home-gallery-${g.id}`}>
+                <SafeImage src={g.image} alt={g.title} className="img-cover hover:scale-105" style={{ transitionProperty: "transform", transitionDuration: "500ms" }} />
               </div>
             ))}
           </div>
@@ -401,7 +402,7 @@ export default function Home() {
                 </div>
                 <p className="text-sm text-foreground/85 leading-relaxed">“{t.review}”</p>
                 <div className="mt-5 flex items-center gap-3">
-                  <img src={t.photo} alt={t.name} className="w-11 h-11 rounded-full object-cover" />
+                  <img src={t.photo} alt={t.name} className="w-11 h-11 rounded-full object-cover" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.src = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'%3E%3Ccircle cx='22' cy='22' r='22' fill='%23E5EEF6'/%3E%3Ccircle cx='22' cy='18' r='7' fill='%23B7CBDD'/%3E%3Cpath d='M8 40c2-8 8-12 14-12s12 4 14 12z' fill='%23B7CBDD'/%3E%3C/svg%3E"; }} />
                   <div>
                     <div className="font-semibold text-sm">{t.name}</div>
                     <div className="text-xs text-muted-foreground">{t.treatment} • {t.city}</div>

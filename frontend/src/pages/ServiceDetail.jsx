@@ -4,6 +4,7 @@ import { CheckCircle2, Clock, ArrowLeft, Calendar, MessageCircle } from "lucide-
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { useSettings } from "@/context/SettingsContext";
+import SafeImage from "@/components/SafeImage";
 
 export default function ServiceDetail() {
   const { slug } = useParams();
@@ -22,7 +23,7 @@ export default function ServiceDetail() {
   return (
     <div data-testid="service-detail-page">
       <section className="relative h-[50vh] min-h-[380px] w-full overflow-hidden">
-        <img src={service.image} alt={service.name} className="img-cover" />
+        <SafeImage src={service.image} alt={service.name} className="img-cover" eager />
         <div className="absolute inset-0 hero-gradient-overlay" />
         <div className="relative z-10 h-full container-x flex flex-col justify-end pb-12">
           <Link to="/services" className="text-white/85 hover:text-white text-sm inline-flex items-center gap-1" data-testid="service-back-link">
@@ -94,7 +95,7 @@ export default function ServiceDetail() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {related.map((r) => (
                 <Link key={r.id} to={`/services/${r.slug}`} data-testid={`service-related-${r.slug}`} className="block bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-border hover:shadow-lg">
-                  <img src={r.image} alt={r.name} className="w-full h-40 object-cover" />
+                  <SafeImage src={r.image} alt={r.name} className="w-full h-40 object-cover" />
                   <div className="p-5">
                     <h3 className="font-heading text-lg font-semibold">{r.name}</h3>
                     <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{r.short_description}</p>

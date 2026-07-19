@@ -6,6 +6,7 @@ import api from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import SectionTitle from "@/components/SectionTitle";
+import SafeImage from "@/components/SafeImage";
 
 export default function Services() {
   const [services, setServices] = useState([]);
@@ -61,7 +62,7 @@ export default function Services() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 md:gap-6">
             {filtered.map((s, idx) => (
               <motion.div
                 key={s.id}
@@ -71,14 +72,14 @@ export default function Services() {
                 transition={{ duration: 0.4, delay: (idx % 6) * 0.05 }}
               >
                 <Link to={`/services/${s.slug}`} data-testid={`service-card-${s.slug}`} className="group block bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-border hover:shadow-xl hover:-translate-y-1" style={{ transitionProperty: "transform, box-shadow", transitionDuration: "300ms" }}>
-                  <div className="aspect-[4/3] overflow-hidden">
-                    <img src={s.image} alt={s.name} className="img-cover group-hover:scale-105" style={{ transitionProperty: "transform", transitionDuration: "500ms" }} />
+                  <div className="aspect-[4/3] overflow-hidden bg-secondary">
+                    <SafeImage src={s.image} alt={s.name} className="img-cover group-hover:scale-105" style={{ transitionProperty: "transform", transitionDuration: "500ms" }} />
                   </div>
-                  <div className="p-5">
-                    <div className="text-[10px] uppercase tracking-widest text-primary font-semibold">{s.category}</div>
-                    <h3 className="mt-1 font-heading text-lg font-semibold">{s.name}</h3>
-                    <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{s.short_description}</p>
-                    <div className="mt-4 flex items-center text-primary text-sm font-medium">
+                  <div className="p-3 sm:p-5">
+                    <div className="text-[10px] uppercase tracking-widest text-primary font-semibold line-clamp-1">{s.category}</div>
+                    <h3 className="mt-1 font-heading text-sm sm:text-lg font-semibold line-clamp-2">{s.name}</h3>
+                    <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-muted-foreground line-clamp-2 hidden sm:block">{s.short_description}</p>
+                    <div className="mt-3 sm:mt-4 flex items-center text-primary text-xs sm:text-sm font-medium">
                       Learn more <ArrowRight className="w-3.5 h-3.5 ml-1" />
                     </div>
                   </div>

@@ -5,6 +5,7 @@ import { GraduationCap, Award, Clock, Calendar } from "lucide-react";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import SectionTitle from "@/components/SectionTitle";
+import SafeImage from "@/components/SafeImage";
 
 export default function Doctors() {
   const [doctors, setDoctors] = useState([]);
@@ -26,7 +27,7 @@ export default function Doctors() {
 
       <section className="section">
         <div className="container-x">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 md:gap-6">
             {doctors.map((d, idx) => (
               <motion.div
                 key={d.id}
@@ -39,22 +40,22 @@ export default function Doctors() {
                 data-testid={`doctor-card-${d.id}`}
               >
                 <div className="aspect-[4/5] overflow-hidden bg-secondary">
-                  <img src={d.photo} alt={d.name} className="img-cover" />
+                  <SafeImage src={d.photo} alt={d.name} className="img-cover" />
                 </div>
-                <div className="p-6">
-                  <h3 className="font-heading text-xl font-semibold">{d.name}</h3>
-                  <div className="text-sm text-primary uppercase tracking-wider mt-1">{d.specialization}</div>
-                  <div className="mt-4 space-y-1.5 text-sm">
+                <div className="p-3 sm:p-6">
+                  <h3 className="font-heading text-base sm:text-xl font-semibold line-clamp-1">{d.name}</h3>
+                  <div className="text-[10px] sm:text-sm text-primary uppercase tracking-wider mt-1 line-clamp-1">{d.specialization}</div>
+                  <div className="mt-3 sm:mt-4 space-y-1 sm:space-y-1.5 text-xs sm:text-sm hidden sm:block">
                     <div className="flex items-center gap-2 text-muted-foreground"><GraduationCap className="w-4 h-4 text-primary" /> {d.qualification}</div>
                     <div className="flex items-center gap-2 text-muted-foreground"><Award className="w-4 h-4 text-primary" /> {d.experience}</div>
                     <div className="flex items-center gap-2 text-muted-foreground"><Clock className="w-4 h-4 text-primary" /> {d.working_days} • {d.working_hours}</div>
                   </div>
-                  <div className="mt-5 flex gap-2">
+                  <div className="mt-3 sm:mt-5 flex gap-1.5 sm:gap-2">
                     <Link to={`/doctors/${d.id}`} className="flex-1" data-testid={`doctor-view-${d.id}`}>
-                      <Button variant="outline" className="w-full rounded-full">View Profile</Button>
+                      <Button variant="outline" size="sm" className="w-full rounded-full text-xs h-8 sm:h-9">View</Button>
                     </Link>
                     <Link to="/appointment" className="flex-1" data-testid={`doctor-book-${d.id}`}>
-                      <Button className="w-full rounded-full bg-primary"><Calendar className="w-4 h-4 mr-1" /> Book</Button>
+                      <Button size="sm" className="w-full rounded-full bg-primary text-xs h-8 sm:h-9"><Calendar className="w-3.5 h-3.5 mr-1" /> Book</Button>
                     </Link>
                   </div>
                 </div>

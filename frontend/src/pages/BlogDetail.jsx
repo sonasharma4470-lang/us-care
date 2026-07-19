@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, CalendarDays, User } from "lucide-react";
 import api from "@/lib/api";
+import SafeImage from "@/components/SafeImage";
 
 export default function BlogDetail() {
   const { slug } = useParams();
@@ -17,7 +18,7 @@ export default function BlogDetail() {
   return (
     <div data-testid="blog-detail-page">
       <section className="relative h-[50vh] min-h-[380px] w-full overflow-hidden">
-        <img src={blog.featured_image} alt={blog.title} className="img-cover" />
+        <SafeImage src={blog.featured_image} alt={blog.title} className="img-cover" eager />
         <div className="absolute inset-0 hero-gradient-overlay" />
         <div className="relative z-10 h-full container-x flex flex-col justify-end pb-12">
           <Link to="/blog" className="text-white/85 hover:text-white text-sm inline-flex items-center gap-1" data-testid="blog-back-link">

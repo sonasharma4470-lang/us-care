@@ -1,0 +1,43 @@
+{
+  "summary": "Iteration-2 (optimization) full-stack testing complete. Backend: 36/36 pytest tests pass (33 regression from iter-1 + 3 new: new SettingsIn fields persist, hero_slides update+GET, broken image URL patterns absent). Frontend: mobile 375px shows 2-col grids on Home services / /services / Gallery / Doctors as required; desktop 1920px shows 4-col home services, 3-col /services, 3-col gallery, 3-col doctors. Zero horizontal scroll on Home/Services/Gallery/Doctors/Appointment/Contact at 375px. SafeImage fallback SVG correctly replaces broken images (verified by injecting bad URL — swapped to data:image/svg+xml with 'Image unavailable'). All 25/28 home images use loading='lazy'. Admin Settings page has new Logo URL field, Footer Description textarea, and Hero Slides editor with Add/Remove per slide — save persists to backend and returns via /api/settings. Hero slider prev/next/dots all present with data-testids.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Services (/services @ 375px)", "issues": ["Category filter chip strip is horizontally scrollable — individual chip buttons extend past viewport (right: 393-869px). Container has overflow-x scroll so body does NOT overflow, but a visible right-fade indicator would improve UX. Not a bug — intentional design pattern."]},
+      {"screen": "Global images", "issues": ["2/28 <img> elements on Home have no explicit loading attribute (likely floating-button icons via lucide-react rendering into <img>). Non-blocking."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(Optional) Add a right-side fade/gradient hint on the /services category chip strip on mobile so users know it scrolls horizontally.",
+    "(Optional) Set loading='lazy' on any remaining raw <img> without the attribute (currently ~2 on Home).",
+    "(Cleanup optional) Existing carry-over test data from iter-1 (TEST_ prefixed testimonials/contacts and one TEST_Service) has been cleaned up during this run."
+  ],
+  "critical_code_review_comments": [
+    "SafeImage.jsx is used correctly across Services/Doctors/Gallery/ServiceDetail/DoctorDetail — good abstraction.",
+    "One legit React warning observed on Home: 'Invalid DOM property fetchpriority. Did you mean fetchPriority?' — a component is passing fetchpriority (lowercase) to a raw <img>. Non-blocking but should be renamed to fetchPriority for React 18 correctness.",
+    "Navbar.jsx uses `settings.logo` with correct onError → hides img; Footer.jsx uses `settings.footer_text` with sensible fallback. Both work as expected.",
+    "SettingsIn model (server.py:244-264) correctly extends with logo, footer_text, homepage_hero_title, homepage_hero_subtitle and preserves hero_slides list.",
+    "seed_content service list no longer references the four broken photo IDs — verified via GET /api/services (0 offenders).",
+    "index.css sets html/body {overflow-x: hidden} and img {max-width: 100%} — verified prevents mobile overflow across all 6 tested pages.",
+    "Still applies from iter-1: server.py is a 1000-line monolith — consider splitting into routers. No rate limiting on /api/auth/login. CORS_ORIGINS='*' + allow_credentials=True combination is browser-rejected for credentialed calls; frontend relies on Bearer tokens so it works, but strict setup preferred."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (added TestSettingsNewFields + TestSeedImageFixes classes with 3 new tests)"
+  ],
+  "success_rate": {"backend": "100% (36/36)", "frontend": "100% of tested flows"},
+  "test_credentials": "admin@upadhyaysharma.com / Admin@123 (verified working)",
+  "seed_data_creation": "No new seed created. Backend auto-seeds admin, services, doctors, testimonials, FAQs, gallery, blogs, settings on startup. Test-created TEST_ artifacts cleaned up.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All optimization requirements verified: (1) SafeImage fallback works, (2) mobile 2-col grids + zero horizontal scroll, (3) desktop grids preserved, (4) new Settings fields (logo, footer_text, homepage_hero_title/subtitle) + hero_slides array persist end-to-end from admin UI. Backend regression: 36/36 pass. Hero slider testids: hero-slider, hero-prev-btn, hero-next-btn, hero-dot-{n}. Admin Settings testids: settings-logo, settings-footer-text, settings-hero-add, settings-hero-slide-{idx}, settings-hero-remove-{idx}, settings-save-btn. Minor React warning about `fetchpriority` prop naming on Home — cosmetic only.",
+  "rca of the issue": "No functional issues found. Only cosmetic/UX enhancement suggestions logged. All acceptance criteria in the review request are met."
+}

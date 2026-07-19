@@ -11,16 +11,20 @@ export default function Footer() {
       <div className="container-x grid grid-cols-1 md:grid-cols-4 gap-10">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent grid place-items-center text-white font-heading text-lg font-bold">
-              US
-            </div>
+            {settings.logo ? (
+              <img src={settings.logo} alt={settings.clinic_name || "Logo"} className="w-10 h-10 rounded-xl object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent grid place-items-center text-white font-heading text-lg font-bold">
+                US
+              </div>
+            )}
             <div className="leading-tight">
-              <div className="font-heading text-base font-semibold text-white">Upadhyay Sharma</div>
+              <div className="font-heading text-base font-semibold text-white">{settings.clinic_name?.split(" ").slice(0, 2).join(" ") || "Upadhyay Sharma"}</div>
               <div className="text-[10px] text-slate-400 tracking-widest uppercase">Physiotherapy Clinic</div>
             </div>
           </div>
           <p className="mt-4 text-sm text-slate-400 leading-relaxed">
-            Premium physiotherapy care blending science, technology and human warmth. Restore. Renew. Recover.
+            {settings.footer_text || "Premium physiotherapy care blending science, technology and human warmth. Restore. Renew. Recover."}
           </p>
           <div className="flex gap-3 mt-5">
             {settings.social?.facebook && (
@@ -80,7 +84,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="container-x mt-12 pt-6 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-3">
-        <p className="text-xs text-slate-500">© {year} {settings.clinic_name}. All rights reserved.</p>
+        <p className="text-xs text-slate-500">© {year} {settings.clinic_name || "Upadhyay Sharma Physiotherapist Clinic"}. All rights reserved.</p>
         <div className="flex gap-4 text-xs text-slate-500">
           <Link to="/contact" className="hover:text-primary">Privacy Policy</Link>
           <Link to="/contact" className="hover:text-primary">Terms & Conditions</Link>

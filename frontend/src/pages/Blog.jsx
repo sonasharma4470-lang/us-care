@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { CalendarDays, User, ArrowRight } from "lucide-react";
 import api from "@/lib/api";
+import SafeImage from "@/components/SafeImage";
 
 export default function Blog() {
   const [items, setItems] = useState([]);
@@ -22,11 +23,11 @@ export default function Blog() {
 
       <section className="section">
         <div className="container-x">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {items.map((b) => (
               <Link key={b.id} to={`/blog/${b.slug}`} data-testid={`blog-card-${b.slug}`} className="group block bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-border hover:shadow-xl">
-                <div className="aspect-[16/10] overflow-hidden">
-                  <img src={b.featured_image} alt={b.title} className="img-cover group-hover:scale-105" style={{ transitionProperty: "transform", transitionDuration: "500ms" }} />
+                <div className="aspect-[16/10] overflow-hidden bg-secondary">
+                  <SafeImage src={b.featured_image} alt={b.title} className="img-cover group-hover:scale-105" style={{ transitionProperty: "transform", transitionDuration: "500ms" }} />
                 </div>
                 <div className="p-6">
                   <div className="text-[10px] uppercase tracking-widest text-primary font-semibold">{b.category}</div>

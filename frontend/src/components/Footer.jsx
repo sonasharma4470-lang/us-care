@@ -19,7 +19,7 @@ export default function Footer() {
               </div>
             )}
             <div className="leading-tight">
-              <div className="font-heading text-base font-semibold text-white">{settings.clinic_name?.split(" ").slice(0, 2).join(" ") || "Upadhyay Sharma"}</div>
+              <div className="font-heading text-base font-semibold text-white">{settings.clinic_name || "CARE WITH US"}</div>
               <div className="text-[10px] text-slate-400 tracking-widest uppercase">Physiotherapy Clinic</div>
             </div>
           </div>

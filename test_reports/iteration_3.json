@@ -1,0 +1,67 @@
+{
+  "summary": "Iteration-3 (content replacement) full-stack testing complete. Backend: 41/41 pytest tests pass (36 regression from iter-2 + 5 new TestRealContent tests validating CARE WITH US clinic data end-to-end). All 9 real services (Musculoskeletal / Orthopaedic / Neurological / Sports / Geriatric / Women's Health / Pediatric / Pain Management / Lifestyle & Wellness), all 4 real BPT doctors (Dr. Isha Upadhyay founder + Muskaan Singhal + Aaradhya Anand + Priya Rao — all photos return 200), 7 FAQs including Pratap Nagar location Q, 6 gallery items (2 using customer-assets uploaded clinic photos), settings has clinic_name='CARE WITH US', tagline='Movement. Recovery. Rehabilitation.', logo from customer-assets domain, footer_text contains 'Move Better', address 'Pratap Nagar, Jaipur', and 3 hero_slides with real images. Frontend: Home hero heading = 'Movement. Recovery. Rehabilitation.'; navbar shows 'CARE WITH US' (not truncated) with customer-assets logo; /services shows all 9 real service cards and 'neurological' search correctly filters to 1 result (Neurological Rehabilitation); /doctors shows all 4 doctors with 4 BPT qualifications; /contact shows Pratap Nagar address and Google Maps iframe loads; favicon points to customer-assets logo URL; Admin login with admin@upadhyaysharma.com/Admin@123 works, Settings page loads all real values (clinic name, tagline, logo, footer, mission/vision/about, 3 hero slides). Fixed destructive mutation tests to preserve real DB content (tagline / logo / footer_text / hero_slides now saved-and-restored inside finally blocks).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Multiple pages (Home, Services, Doctors, Gallery, Testimonials, Blog, Appointment)",
+        "issue": "Browser tab title still says 'Upadhyay Sharma Physiotherapy' or 'Premium Physiotherapy Care' — does NOT match the expected title from index.html ('CARE WITH US – Advanced Physiotherapy & Rehabilitation Centre | Jaipur'). Actual title on /: 'CARE WITH US — Premium Physiotherapy Care'; on /services: 'Services — Upadhyay Sharma Physiotherapy'. Every page overrides document.title via useEffect with hardcoded 'Upadhyay Sharma Physiotherapy' string.",
+        "selector": "document.title (set in pages/Home.jsx:141, Services.jsx:17, Doctors.jsx:14, Gallery.jsx:12, Blog.jsx:11, Testimonials.jsx:17, Appointment.jsx:37)",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "AdminLayout sidebar",
+        "issue": "Sidebar header hardcodes 'Upadhyay Sharma' / 'US' logo initials instead of using settings.clinic_name and settings.logo.",
+        "selector": "components/AdminLayout.jsx:34",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "Admin Login page",
+        "issue": "H2 heading hardcodes 'Upadhyay Sharma Clinic Admin' instead of using settings.clinic_name.",
+        "selector": "pages/admin/Login.jsx:40",
+        "priority": "LOW"
+      },
+      {
+        "component": "SettingsContext default",
+        "issue": "Default fallback clinic_name is 'Upadhyay Sharma Physiotherapist Clinic'. Only shown pre-load, but should be updated to 'CARE WITH US' as a safer default (also affects Footer.jsx:87 fallback string).",
+        "selector": "context/SettingsContext.jsx:7 and components/Footer.jsx:87",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Replace hardcoded 'Upadhyay Sharma Physiotherapy' string in document.title of 7 pages with a helper using settings.clinic_name — e.g. Home should be 'CARE WITH US – Advanced Physiotherapy & Rehabilitation Centre | Jaipur' (matches index.html), other pages should be '{Page} — CARE WITH US'.",
+    "Update components/AdminLayout.jsx:34 to use settings.clinic_name and settings.logo (with fallback to 'US' initials).",
+    "Update pages/admin/Login.jsx:40 to use settings.clinic_name + ' Admin' or generic 'Admin Panel'.",
+    "Update context/SettingsContext.jsx:7 default clinic_name fallback to 'CARE WITH US' (matches Footer.jsx:87 fallback).",
+    "OPTIONAL: Ask user to supply real phone/whatsapp/email so '+91 00000 00000' placeholders can be replaced (currently visible on Home hero CTA 'Call Now', Navbar, Footer, Contact page — user was already informed this is expected until Admin → Settings edit)."
+  ],
+  "critical_code_review_comments": [
+    "Content-replacement is inconsistent: DB content and index.html <title> were updated but React-level page titles (7 files) and Admin panel branding (2 files) still hardcode 'Upadhyay Sharma'. This means index.html title flashes correctly then gets overridden by React's useEffect a moment after mount.",
+    "migrate_real_content.py wipes services/doctors/testimonials/blogs/gallery/faqs collections. server.py seed_content is guarded (only seeds when empty) so on next restart, testimonials/blogs (now empty) will be re-seeded with OLD Upadhyay Sharma demo data. Recommend: (a) either add real testimonials/blogs to migrate_real_content.py, or (b) add a 'seeded' marker doc so seed_content never re-runs, or (c) update seed_content to use CARE WITH US demo content as fallback.",
+    "Non-destructive mutation-test pattern applied in TestSettingsNewFields + TestAdminCRUD.test_settings_update — now saves originals and restores in finally block. Prevents real content corruption during CI test runs (previously wiped tagline to 'Restore. Renew. Recover.').",
+    "Placeholder contact info (phone/email/whatsapp = '+91 00000 00000' / 'info@carewithus.in') is intentionally visible per user instruction — NOT a bug.",
+    "Frontend correctly reads settings.logo / settings.clinic_name / settings.footer_text / settings.address in Navbar+Footer — real content propagates end-to-end.",
+    "Admin Settings editor exposes all new fields (Logo URL with preview, Footer Description textarea, Hero Slides list of 3 with Add/Remove) and save persists via PUT /api/admin/settings (verified by pytest)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (added TestRealContent class with 5 new tests; converted TestAdminCRUD.test_settings_update, TestSettingsNewFields.test_update_new_fields_persist, TestSettingsNewFields.test_update_hero_slides to save-and-restore original values; replaced test_service_by_slug_back_pain with test_service_by_slug_real using musculoskeletal-physiotherapy slug; relaxed test_testimonials_only_approved and test_blogs_list to accept empty lists per real-content migration).",
+    "(also re-ran /app/backend/migrate_real_content.py once to restore tagline after an earlier destructive test-run had left it at 'Restore. Renew. Recover.' — real content is now live again)"
+  ],
+  "success_rate": {"backend": "100% (41/41)", "frontend": "~85% (all content flows pass; document.title regression on 7 pages + hardcoded admin branding on 2 pages)"},
+  "test_credentials": "admin@upadhyaysharma.com / Admin@123 (verified working — logged in end-to-end via Admin UI)",
+  "seed_data_creation": "No new seed created. Real CARE WITH US content is served from DB via migrate_real_content.py. TEST_ artifacts (services/doctors/blogs/gallery/faqs/contacts/testimonials) created during CRUD tests are all cleaned up in the same test.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "iter-3 covers content replacement. 41 pytest tests pass including 5 new content-verification tests (TestRealContent). Real content in DB: 9 services with slugs musculoskeletal-physiotherapy/orthopaedic-rehabilitation/neurological-rehabilitation/sports-physiotherapy/geriatric-physiotherapy/womens-health-physiotherapy/pediatric-physiotherapy/pain-management/lifestyle-and-wellness-programs, 4 BPT doctors, 7 FAQs, 6 gallery items (2 from customer-assets), settings.clinic_name='CARE WITH US', tagline='Movement. Recovery. Rehabilitation.', hero_slides has 3 slides. Known bugs to be fixed by main agent: (1) document.title hardcoded on 7 pages (2) AdminLayout.jsx / admin/Login.jsx hardcoded 'Upadhyay Sharma' branding (3) SettingsContext.jsx default fallback. After main agent fixes, retest by opening each page and reading document.title + admin sidebar. Admin credentials still: admin@upadhyaysharma.com / Admin@123. If tests corrupt real content in future, run: cd /app/backend && python3 migrate_real_content.py.",
+  "rca of the issue": "Content-replacement was applied at the DATA layer (DB seed via migrate_real_content.py) and at the SHELL layer (index.html title, Navbar.jsx, Footer.jsx read settings.clinic_name) but was NOT applied at the PAGE layer (each page's useEffect that sets document.title uses a hardcoded string). Fix: refactor to a useDocumentTitle(pageName) hook that reads settings.clinic_name and formats consistently, OR update each hardcoded string to reference settings via the SettingsContext. Also, admin layout components (AdminLayout.jsx, admin/Login.jsx) were not migrated to consume SettingsContext."
+}

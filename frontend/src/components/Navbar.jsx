@@ -51,7 +51,7 @@ export default function Navbar() {
             </div>
           )}
           <div className="hidden sm:block leading-tight">
-            <div className="font-heading font-semibold text-base text-foreground">{settings.clinic_name?.split(" ").slice(0, 2).join(" ") || "Upadhyay Sharma"}</div>
+            <div className="font-heading font-semibold text-base text-foreground">{settings.clinic_name || "CARE WITH US"}</div>
             <div className="text-[10px] text-muted-foreground tracking-widest uppercase">Physiotherapy Clinic</div>
           </div>
         </Link>

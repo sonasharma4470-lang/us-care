@@ -7,7 +7,7 @@ import { useSettings } from "@/context/SettingsContext";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import SectionTitle from "@/components/SectionTitle";
-import SafeImage from "@/components/SafeImage";
+import SafeImage, { resolveImageUrl } from "@/components/SafeImage";
 
 // ---------- Hero Slider ----------
 function HeroSlider({ slides }) {
@@ -32,7 +32,7 @@ function HeroSlider({ slides }) {
           transition={{ duration: 1.2, ease: "easeOut" }}
           className="absolute inset-0"
         >
-          <img src={slide.image} alt={slide.heading} className="img-cover" loading={i === 0 ? "eager" : "lazy"} decoding="async" fetchPriority={i === 0 ? "high" : "auto"} />
+          <img src={resolveImageUrl(slide.image)} alt={slide.heading} className="img-cover" loading={i === 0 ? "eager" : "lazy"} decoding="async" fetchPriority={i === 0 ? "high" : "auto"} onError={(e) => { e.currentTarget.style.opacity = '0.5'; }} />
           <div className="absolute inset-0 hero-gradient-overlay" />
         </motion.div>
       </AnimatePresence>

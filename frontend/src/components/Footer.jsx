@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Facebook, Instagram, Youtube, Linkedin, Mail, Phone, MapPin, Clock } from "lucide-react";
 import { useSettings } from "@/context/SettingsContext";
+import { resolveImageUrl } from "@/components/SafeImage";
 
 export default function Footer() {
   const { settings } = useSettings();
@@ -12,7 +13,7 @@ export default function Footer() {
         <div>
           <div className="flex items-center gap-2">
             {settings.logo ? (
-              <img src={settings.logo} alt={settings.clinic_name || "Logo"} className="w-10 h-10 rounded-xl object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+              <img src={resolveImageUrl(settings.logo)} alt={settings.clinic_name || "Logo"} className="w-10 h-10 rounded-xl object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
             ) : (
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent grid place-items-center text-white font-heading text-lg font-bold">
                 US

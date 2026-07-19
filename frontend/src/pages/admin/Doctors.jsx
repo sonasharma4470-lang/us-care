@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import ImageUploader from "@/components/ImageUploader";
+import { resolveImageUrl } from "@/components/SafeImage";
 
 const empty = {
   name: "", photo: "", qualification: "", specialization: "", experience: "",
@@ -65,7 +67,7 @@ export default function AdminDoctors() {
         {items.map((d) => (
           <div key={d.id} className="rounded-2xl bg-white dark:bg-slate-900 border border-border p-4" data-testid={`doc-card-${d.id}`}>
             <div className="flex gap-3">
-              <img src={d.photo} alt={d.name} className="w-16 h-16 rounded-xl object-cover" />
+              <img src={resolveImageUrl(d.photo)} alt={d.name} className="w-16 h-16 rounded-xl object-cover" onError={(e) => { e.currentTarget.style.opacity = '0.4'; }} />
               <div className="flex-1 min-w-0">
                 <h3 className="font-heading font-semibold truncate">{d.name}</h3>
                 <div className="text-xs text-primary truncate">{d.specialization}</div>
@@ -87,9 +89,6 @@ export default function AdminDoctors() {
             <div className="grid sm:grid-cols-2 gap-3">
               <FieldRow label="Name" required>
                 <Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="doc-form-name" />
-              </FieldRow>
-              <FieldRow label="Photo URL">
-                <Input value={form.photo} onChange={(e) => setForm({ ...form, photo: e.target.value })} data-testid="doc-form-photo" />
               </FieldRow>
               <FieldRow label="Qualification">
                 <Input value={form.qualification} onChange={(e) => setForm({ ...form, qualification: e.target.value })} data-testid="doc-form-qual" />
@@ -116,6 +115,9 @@ export default function AdminDoctors() {
                 <Input type="number" value={form.display_order} onChange={(e) => setForm({ ...form, display_order: e.target.value })} />
               </FieldRow>
             </div>
+            <FieldRow label="Photo">
+              <ImageUploader value={form.photo || ""} onChange={(url) => setForm({ ...form, photo: url })} kind="doctors" aspect="portrait" testid="doc-form-photo-uploader" />
+            </FieldRow>
             <FieldRow label="Biography">
               <Textarea rows={4} value={form.biography} onChange={(e) => setForm({ ...form, biography: e.target.value })} data-testid="doc-form-bio" />
             </FieldRow>

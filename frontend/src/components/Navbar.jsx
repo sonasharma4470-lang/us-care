@@ -4,6 +4,7 @@ import { Menu, X, Sun, Moon, Phone, Calendar, MessageCircle, Search } from "luci
 import { useTheme } from "@/context/ThemeContext";
 import { useSettings } from "@/context/SettingsContext";
 import { Button } from "@/components/ui/button";
+import { resolveImageUrl } from "@/components/SafeImage";
 
 const links = [
   { to: "/", label: "Home" },
@@ -44,7 +45,7 @@ export default function Navbar() {
       <div className="container-x flex items-center justify-between h-16 md:h-20">
         <Link to="/" className="flex items-center gap-2" data-testid="nav-logo-link">
           {settings.logo ? (
-            <img src={settings.logo} alt={settings.clinic_name || "Logo"} className="w-10 h-10 rounded-xl object-cover shadow-lg" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            <img src={resolveImageUrl(settings.logo)} alt={settings.clinic_name || "Logo"} className="w-10 h-10 rounded-xl object-cover shadow-lg" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           ) : (
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent grid place-items-center text-white font-heading text-lg font-bold shadow-lg">
               US

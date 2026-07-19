@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import ImageUploader from "@/components/ImageUploader";
+import { resolveImageUrl } from "@/components/SafeImage";
 
 const empty = { title: "", slug: "", excerpt: "", content: "", featured_image: "", author: "Admin", category: "", status: "published", featured: false };
 
@@ -58,7 +60,7 @@ export default function AdminBlogs() {
       <div className="rounded-2xl bg-white dark:bg-slate-900 border border-border divide-y divide-border">
         {items.map((b) => (
           <div key={b.id} className="p-4 flex items-center gap-4" data-testid={`blog-row-${b.id}`}>
-            <img src={b.featured_image} alt={b.title} className="w-20 h-14 rounded object-cover" />
+            <img src={resolveImageUrl(b.featured_image)} alt={b.title} className="w-20 h-14 rounded object-cover" onError={(e) => { e.currentTarget.style.opacity = '0.4'; }} />
             <div className="flex-1 min-w-0">
               <div className="font-medium truncate">{b.title}</div>
               <div className="text-xs text-muted-foreground">{b.category} • {b.status} • {new Date(b.created_at).toLocaleDateString()}</div>
@@ -81,7 +83,7 @@ export default function AdminBlogs() {
               <div><Label>Category</Label><Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></div>
               <div><Label>Author</Label><Input value={form.author} onChange={(e) => setForm({ ...form, author: e.target.value })} /></div>
             </div>
-            <div><Label>Featured Image URL</Label><Input value={form.featured_image} onChange={(e) => setForm({ ...form, featured_image: e.target.value })} data-testid="blog-form-image" /></div>
+            <div><Label>Featured Image</Label><ImageUploader value={form.featured_image || ""} onChange={(url) => setForm({ ...form, featured_image: url })} kind="blogs" aspect="wide" testid="blog-form-image-uploader" /></div>
             <div><Label>Excerpt</Label><Textarea rows={2} value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} /></div>
             <div><Label>Content (HTML supported)</Label><Textarea rows={8} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} data-testid="blog-form-content" /></div>
             <div className="flex gap-6">

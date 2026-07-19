@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useSettings } from "@/context/SettingsContext";
+import ImageUploader from "@/components/ImageUploader";
 
 export default function AdminSettings() {
   const { settings, refresh } = useSettings();
@@ -55,11 +56,8 @@ export default function AdminSettings() {
         <div className="grid sm:grid-cols-2 gap-3">
           <Field label="Clinic Name"><Input value={form.clinic_name || ""} onChange={(e) => update("clinic_name", e.target.value)} data-testid="settings-clinic-name" /></Field>
           <Field label="Tagline"><Input value={form.tagline || ""} onChange={(e) => update("tagline", e.target.value)} /></Field>
-          <Field label="Logo URL" className="sm:col-span-2">
-            <div className="flex gap-3 items-center">
-              <Input value={form.logo || ""} onChange={(e) => update("logo", e.target.value)} placeholder="https://.../logo.png" data-testid="settings-logo" />
-              {form.logo && <img src={form.logo} alt="Logo preview" className="w-12 h-12 rounded-lg object-cover border border-border" onError={(e) => { e.currentTarget.style.display='none'; }} />}
-            </div>
+          <Field label="Logo" className="sm:col-span-2">
+            <ImageUploader value={form.logo || ""} onChange={(url) => update("logo", url)} kind="logo" aspect="square" testid="settings-logo-uploader" />
           </Field>
           <Field label="Phone"><Input value={form.phone || ""} onChange={(e) => update("phone", e.target.value)} data-testid="settings-phone" /></Field>
           <Field label="WhatsApp"><Input value={form.whatsapp || ""} onChange={(e) => update("whatsapp", e.target.value)} /></Field>
@@ -121,19 +119,22 @@ export default function AdminSettings() {
                 }} data-testid={`settings-hero-remove-${idx}`}>Remove</Button>
               </div>
               <div className="grid sm:grid-cols-2 gap-2">
-                <div><Label className="text-xs">Image URL</Label><Input value={slide.image || ""} onChange={(e) => {
-                  const next = [...form.hero_slides]; next[idx] = { ...next[idx], image: e.target.value }; update("hero_slides", next);
-                }} /></div>
+                <div className="sm:col-span-2">
+                  <Label className="text-xs">Image</Label>
+                  <ImageUploader value={slide.image || ""} onChange={(url) => {
+                    const next = [...form.hero_slides]; next[idx] = { ...next[idx], image: url }; update("hero_slides", next);
+                  }} kind="hero" aspect="wide" testid={`settings-hero-image-${idx}`} />
+                </div>
                 <div><Label className="text-xs">CTA Link</Label><Input value={slide.cta_link || ""} onChange={(e) => {
                   const next = [...form.hero_slides]; next[idx] = { ...next[idx], cta_link: e.target.value }; update("hero_slides", next);
-                }} /></div>
-                <div><Label className="text-xs">Heading</Label><Input value={slide.heading || ""} onChange={(e) => {
-                  const next = [...form.hero_slides]; next[idx] = { ...next[idx], heading: e.target.value }; update("hero_slides", next);
                 }} /></div>
                 <div><Label className="text-xs">CTA Text</Label><Input value={slide.cta_text || ""} onChange={(e) => {
                   const next = [...form.hero_slides]; next[idx] = { ...next[idx], cta_text: e.target.value }; update("hero_slides", next);
                 }} /></div>
-                <div className="sm:col-span-2"><Label className="text-xs">Subheading</Label><Input value={slide.subheading || ""} onChange={(e) => {
+                <div><Label className="text-xs">Heading</Label><Input value={slide.heading || ""} onChange={(e) => {
+                  const next = [...form.hero_slides]; next[idx] = { ...next[idx], heading: e.target.value }; update("hero_slides", next);
+                }} /></div>
+                <div><Label className="text-xs">Subheading</Label><Input value={slide.subheading || ""} onChange={(e) => {
                   const next = [...form.hero_slides]; next[idx] = { ...next[idx], subheading: e.target.value }; update("hero_slides", next);
                 }} /></div>
                 <div className="sm:col-span-2"><Label className="text-xs">Description</Label><Textarea rows={2} value={slide.description || ""} onChange={(e) => {

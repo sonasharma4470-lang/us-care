@@ -4,6 +4,7 @@ import { LayoutDashboard, CalendarCheck, Stethoscope, Sparkles, Star, Image as I
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { Button } from "@/components/ui/button";
+import { resolveImageUrl } from "@/components/SafeImage";
 
 const items = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -32,7 +33,7 @@ export default function AdminLayout() {
       <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-white dark:bg-slate-900 border-r border-border">
         <Link to="/admin" className="flex items-center gap-2 h-16 px-5 border-b border-border" data-testid="admin-sidebar-logo">
           {settings.logo ? (
-            <img src={settings.logo} alt={settings.clinic_name || "Logo"} className="w-9 h-9 rounded-lg object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            <img src={resolveImageUrl(settings.logo)} alt={settings.clinic_name || "Logo"} className="w-9 h-9 rounded-lg object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           ) : (
             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-accent grid place-items-center text-white font-heading font-bold">CW</div>
           )}

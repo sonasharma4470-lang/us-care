@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import ImageUploader from "@/components/ImageUploader";
+import { resolveImageUrl } from "@/components/SafeImage";
 
 const empty = { title: "", image: "", category: "Clinic", description: "", display_order: 0 };
 
@@ -49,7 +51,7 @@ export default function AdminGallery() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {items.map((g) => (
           <div key={g.id} className="rounded-2xl overflow-hidden border border-border bg-white dark:bg-slate-900" data-testid={`gal-card-${g.id}`}>
-            <img src={g.image} alt={g.title} className="w-full h-40 object-cover" />
+            <img src={resolveImageUrl(g.image)} alt={g.title} className="w-full h-40 object-cover" onError={(e) => { e.currentTarget.style.opacity = '0.4'; }} />
             <div className="p-3">
               <div className="text-xs text-primary uppercase tracking-wider">{g.category}</div>
               <div className="text-sm font-medium truncate">{g.title}</div>
@@ -66,7 +68,7 @@ export default function AdminGallery() {
           <DialogHeader><DialogTitle>{editing ? "Edit" : "Add"} Gallery Image</DialogTitle></DialogHeader>
           <form onSubmit={save} className="space-y-3">
             <div><Label>Title</Label><Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} data-testid="gal-form-title" /></div>
-            <div><Label>Image URL</Label><Input required value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} data-testid="gal-form-image" /></div>
+            <div><Label>Image</Label><ImageUploader value={form.image || ""} onChange={(url) => setForm({ ...form, image: url })} kind="gallery" aspect="wide" testid="gal-form-image-uploader" /></div>
             <div><Label>Category</Label><Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></div>
             <div><Label>Display Order</Label><Input type="number" value={form.display_order} onChange={(e) => setForm({ ...form, display_order: e.target.value })} /></div>
             <div className="flex justify-end gap-2">

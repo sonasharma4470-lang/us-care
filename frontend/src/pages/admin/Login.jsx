@@ -7,6 +7,7 @@ import { useSettings } from "@/context/SettingsContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { resolveImageUrl } from "@/components/SafeImage";
 
 export default function AdminLogin() {
   const { login } = useAuth();
@@ -39,7 +40,7 @@ export default function AdminLogin() {
         <div className="absolute inset-0 hero-gradient-overlay" />
         <div className="absolute bottom-10 left-10 text-white max-w-md">
           {settings.logo ? (
-            <img src={settings.logo} alt={settings.clinic_name || "Logo"} className="w-14 h-14 rounded-xl object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            <img src={resolveImageUrl(settings.logo)} alt={settings.clinic_name || "Logo"} className="w-14 h-14 rounded-xl object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           ) : (
             <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur grid place-items-center font-heading font-bold text-lg">CW</div>
           )}

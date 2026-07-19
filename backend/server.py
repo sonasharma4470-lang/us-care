@@ -12,10 +12,13 @@ import jwt
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Any
 
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, status
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, status, UploadFile, File, Form
+from fastapi.responses import Response as FastAPIResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
+
+from storage import init_storage, put_object, get_object, build_path
 
 
 # --------- Mongo Setup ---------
@@ -693,7 +696,74 @@ async def dashboard_stats(_: dict = Depends(require_admin)):
 
 @api.get("/")
 async def root():
-    return {"message": "Upadhyay Sharma Clinic API", "version": "1.0"}
+    return {"message": "CARE WITH US Clinic API", "version": "1.1"}
+
+
+# --------- Media Upload ---------
+ALLOWED_MIME = {
+    "image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif", "image/svg+xml",
+}
+MAX_UPLOAD_MB = 15
+
+
+@api.post("/admin/upload")
+async def upload_media(
+    file: UploadFile = File(...),
+    kind: str = Form("misc"),
+    user: dict = Depends(require_admin),
+):
+    """Upload an image and get a public URL that can be stored in doctor/service/gallery/settings."""
+    content_type = (file.content_type or "").lower()
+    if content_type not in ALLOWED_MIME:
+        raise HTTPException(400, f"Unsupported file type: {content_type}. Allowed: JPG, PNG, WEBP, GIF, SVG.")
+    data = await file.read()
+    size_mb = len(data) / (1024 * 1024)
+    if size_mb > MAX_UPLOAD_MB:
+        raise HTTPException(400, f"File too large ({size_mb:.1f} MB). Max is {MAX_UPLOAD_MB} MB.")
+    if kind not in {"doctors", "services", "gallery", "blogs", "logo", "hero", "misc"}:
+        kind = "misc"
+    path = build_path(kind, file.filename or "upload.bin")
+    try:
+        result = put_object(path, data, content_type)
+    except Exception as e:
+        logger.exception("Upload failed")
+        raise HTTPException(500, f"Upload failed: {e}")
+
+    stored_path = result["path"]
+    file_doc = {
+        "id": uid(),
+        "storage_path": stored_path,
+        "original_filename": file.filename,
+        "content_type": content_type,
+        "size": result.get("size", len(data)),
+        "kind": kind,
+        "uploaded_by": user.get("id"),
+        "is_deleted": False,
+        "created_at": now_iso(),
+    }
+    await db.files.insert_one(file_doc)
+
+    # Public URL served by backend proxy
+    backend_base = os.environ.get("PUBLIC_URL", "").rstrip("/")
+    public_url = f"{backend_base}/api/media/{stored_path}" if backend_base else f"/api/media/{stored_path}"
+    return {"url": public_url, "path": stored_path, "size": file_doc["size"]}
+
+
+@api.get("/media/{path:path}")
+async def get_media(path: str):
+    """Public read of an uploaded image (no auth). Content-Type is preserved."""
+    record = await db.files.find_one({"storage_path": path, "is_deleted": False})
+    if not record:
+        raise HTTPException(404, "File not found")
+    try:
+        data, content_type = get_object(path)
+    except Exception as e:
+        raise HTTPException(500, f"Storage error: {e}")
+    return FastAPIResponse(
+        content=data,
+        media_type=record.get("content_type", content_type),
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
 
 
 # --------- Startup: Seed Data ---------

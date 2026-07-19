@@ -571,3 +571,145 @@ class TestStats:
             assert key in data
         assert isinstance(data["monthly_appointments"], list)
         assert len(data["monthly_appointments"]) == 6
+
+
+
+# --------- Iteration 5: Media Upload & Serving ---------
+def _make_tiny_png(width: int = 4, height: int = 4) -> bytes:
+    """Create a valid minimal PNG (single-color) using stdlib only."""
+    import struct
+    import zlib
+
+    def _chunk(tag: bytes, data: bytes) -> bytes:
+        return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+
+    sig = b"\x89PNG\r\n\x1a\n"
+    ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)  # 8-bit RGB
+    # Each scanline: filter byte 0 + RGB per pixel (blue)
+    raw = b""
+    for _ in range(height):
+        raw += b"\x00" + (b"\x00\x00\xFF" * width)
+    idat = zlib.compress(raw)
+    return sig + _chunk(b"IHDR", ihdr) + _chunk(b"IDAT", idat) + _chunk(b"IEND", b"")
+
+
+class TestMediaUpload:
+    """Iteration-5 tests for POST /api/admin/upload and GET /api/media/{path}."""
+
+    uploaded_path = None
+    uploaded_url = None
+
+    def test_upload_requires_auth(self, api_client):
+        png = _make_tiny_png()
+        files = {"file": ("test.png", png, "image/png")}
+        r = requests.post(f"{BASE_URL}/api/admin/upload", files=files, data={"kind": "misc"})
+        assert r.status_code in (401, 403), f"expected 401/403, got {r.status_code}"
+
+    def test_upload_with_invalid_token(self, api_client):
+        png = _make_tiny_png()
+        files = {"file": ("test.png", png, "image/png")}
+        r = requests.post(
+            f"{BASE_URL}/api/admin/upload",
+            files=files,
+            data={"kind": "misc"},
+            headers={"Authorization": "Bearer invalid.token.here"},
+        )
+        assert r.status_code in (401, 403)
+
+    def test_upload_png_success(self, auth_headers):
+        png = _make_tiny_png(10, 10)
+        assert png.startswith(b"\x89PNG"), "helper did not produce a valid PNG"
+        files = {"file": ("blue.png", png, "image/png")}
+        r = requests.post(
+            f"{BASE_URL}/api/admin/upload",
+            files=files,
+            data={"kind": "misc"},
+            headers=auth_headers,
+        )
+        assert r.status_code == 200, f"status={r.status_code} body={r.text}"
+        body = r.json()
+        assert "url" in body and "path" in body and "size" in body
+        assert body["path"].startswith("carewithus/misc/"), f"path={body['path']}"
+        # url must reference /api/media/carewithus/misc/... (absolute or relative)
+        assert "/api/media/carewithus/misc/" in body["url"], f"url={body['url']}"
+        assert isinstance(body["size"], int) and body["size"] > 0
+        TestMediaUpload.uploaded_path = body["path"]
+        TestMediaUpload.uploaded_url = body["url"]
+
+    def test_upload_rejects_txt(self, auth_headers):
+        files = {"file": ("hello.txt", b"hello world", "text/plain")}
+        r = requests.post(
+            f"{BASE_URL}/api/admin/upload",
+            files=files,
+            data={"kind": "misc"},
+            headers=auth_headers,
+        )
+        assert r.status_code == 400
+        assert "Unsupported" in r.text or "file type" in r.text.lower()
+
+    def test_upload_rejects_oversize(self, auth_headers):
+        # 16 MB dummy "PNG" (header + junk) — exceeds 15 MB
+        # Note: this still uses content_type image/png so it passes MIME gate
+        big = b"\x89PNG\r\n\x1a\n" + b"\x00" * (16 * 1024 * 1024)
+        files = {"file": ("big.png", big, "image/png")}
+        r = requests.post(
+            f"{BASE_URL}/api/admin/upload",
+            files=files,
+            data={"kind": "misc"},
+            headers=auth_headers,
+            timeout=120,
+        )
+        assert r.status_code == 400, f"expected 400 for oversize, got {r.status_code}: {r.text[:200]}"
+        assert "large" in r.text.lower() or "size" in r.text.lower()
+
+    def test_serve_uploaded_media(self, api_client):
+        assert TestMediaUpload.uploaded_path is not None, "run test_upload_png_success first"
+        r = requests.get(f"{BASE_URL}/api/media/{TestMediaUpload.uploaded_path}")
+        assert r.status_code == 200
+        assert r.headers.get("Content-Type", "").startswith("image/png")
+        assert r.content.startswith(b"\x89PNG"), "returned bytes are not a PNG"
+        # NOTE: Backend sets `Cache-Control: public, max-age=31536000, immutable`
+        # but the preview ingress/Cloudflare overrides it with `no-store, no-cache, must-revalidate`
+        # on all public routes. We verify against direct backend at localhost:8001 too.
+        cache = r.headers.get("Cache-Control", "")
+        # Assert either the backend-set value survives OR (edge override case) the ingress applied its default
+        assert cache, "Cache-Control header missing entirely"
+        # We check backend directly to ensure the code actually sets the correct header
+        try:
+            direct = requests.get(f"http://localhost:8001/api/media/{TestMediaUpload.uploaded_path}", timeout=5)
+            direct_cache = direct.headers.get("Cache-Control", "")
+            assert "public" in direct_cache and "max-age" in direct_cache, \
+                f"backend Cache-Control incorrect: {direct_cache}"
+        except requests.RequestException:
+            # localhost not reachable from this test host – skip direct check
+            pass
+
+    def test_serve_nonexistent_returns_404(self, api_client):
+        r = requests.get(f"{BASE_URL}/api/media/nonexistent/does-not-exist.png")
+        assert r.status_code == 404
+
+    def test_files_collection_record_exists(self, auth_headers):
+        """The uploaded file must be findable via a subsequent successful GET
+        (which internally requires a `files` collection record with is_deleted=False)."""
+        assert TestMediaUpload.uploaded_path is not None
+        # The serve endpoint hits db.files.find_one({storage_path, is_deleted:false});
+        # a 200 response proves record exists and is not soft-deleted.
+        r = requests.get(f"{BASE_URL}/api/media/{TestMediaUpload.uploaded_path}")
+        assert r.status_code == 200
+
+    def test_upload_kind_field_is_respected(self, auth_headers):
+        """Regression guard: `kind` sent via multipart FormData must be parsed
+        (must be declared as Form(...) in backend, not query param default)."""
+        png = _make_tiny_png(6, 6)
+        for kind in ("doctors", "services", "gallery", "blogs", "logo", "hero"):
+            files = {"file": (f"{kind}.png", png, "image/png")}
+            r = requests.post(
+                f"{BASE_URL}/api/admin/upload",
+                files=files,
+                data={"kind": kind},
+                headers=auth_headers,
+            )
+            assert r.status_code == 200, f"upload with kind={kind} failed: {r.text}"
+            body = r.json()
+            assert body["path"].startswith(f"carewithus/{kind}/"), \
+                f"kind={kind} was NOT respected — path={body['path']} (backend probably reads it as query param)"

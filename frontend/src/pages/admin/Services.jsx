@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import ImageUploader from "@/components/ImageUploader";
+import { resolveImageUrl } from "@/components/SafeImage";
 
 const empty = {
   name: "", slug: "", image: "", short_description: "", description: "",
@@ -75,7 +77,7 @@ export default function AdminServices() {
             <tbody>
               {items.map((s) => (
                 <tr key={s.id} className="border-t border-border" data-testid={`svc-row-${s.id}`}>
-                  <td className="p-3"><img src={s.image} alt={s.name} className="w-14 h-10 rounded object-cover" /></td>
+                  <td className="p-3"><img src={resolveImageUrl(s.image)} alt={s.name} className="w-14 h-10 rounded object-cover" onError={(e) => { e.currentTarget.style.opacity = '0.4'; }} /></td>
                   <td className="p-3 font-medium">{s.name}</td>
                   <td className="p-3">{s.category}</td>
                   <td className="p-3">
@@ -108,7 +110,7 @@ export default function AdminServices() {
               <div><Label>Price</Label><Input value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} /></div>
               <div><Label>Display Order</Label><Input type="number" value={form.display_order} onChange={(e) => setForm({ ...form, display_order: e.target.value })} /></div>
             </div>
-            <div><Label>Image URL</Label><Input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} data-testid="svc-form-image" /></div>
+            <div><Label>Image</Label><ImageUploader value={form.image || ""} onChange={(url) => setForm({ ...form, image: url })} kind="services" aspect="wide" testid="svc-form-image-uploader" /></div>
             <div><Label>Short Description</Label><Textarea rows={2} value={form.short_description} onChange={(e) => setForm({ ...form, short_description: e.target.value })} data-testid="svc-form-short" /></div>
             <div><Label>Description</Label><Textarea rows={5} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} data-testid="svc-form-desc" /></div>
             <div className="flex gap-6">

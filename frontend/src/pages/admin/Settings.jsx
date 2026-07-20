@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Save } from "lucide-react";
+import { Save, Mail, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useSettings } from "@/context/SettingsContext";
 import ImageUploader from "@/components/ImageUploader";
 
@@ -39,6 +40,15 @@ export default function AdminSettings() {
 
   const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const updateNested = (parent, k, v) => setForm((f) => ({ ...f, [parent]: { ...(f[parent] || {}), [k]: v } }));
+
+  const testNotification = async (channel) => {
+    try {
+      const { data } = await api.post("/admin/notifications/test", { channel });
+      toast[data.ok ? "success" : "error"](`${channel}: ${data.detail || (data.ok ? "sent" : "failed")}`);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Test failed");
+    }
+  };
 
   return (
     <form onSubmit={save} className="space-y-6" data-testid="admin-settings">
@@ -148,6 +158,51 @@ export default function AdminSettings() {
             update("hero_slides", next);
           }} data-testid="settings-hero-add">+ Add Slide</Button>
         </div>
+      </Section>
+
+      <Section title="Email Notifications (SMTP)">
+        <p className="text-xs text-muted-foreground -mt-1">When enabled, every new appointment and contact enquiry sends an email to the admin address below.</p>
+        <div className="flex items-center gap-2">
+          <Switch checked={!!form.notifications?.email_enabled} onCheckedChange={(v) => updateNested("notifications", "email_enabled", v)} data-testid="settings-email-enabled" />
+          <span className="text-sm">Enable email notifications</span>
+          <Button type="button" variant="outline" size="sm" onClick={() => testNotification("email")} className="ml-auto" data-testid="settings-test-email"><Mail className="w-3.5 h-3.5 mr-1" /> Send Test</Button>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <Field label="Admin Email (recipient)"><Input value={form.notifications?.admin_email || ""} onChange={(e) => updateNested("notifications", "admin_email", e.target.value)} placeholder="admin@yourdomain.com" data-testid="settings-admin-email" /></Field>
+          <Field label="From Address"><Input value={form.notifications?.smtp_from || ""} onChange={(e) => updateNested("notifications", "smtp_from", e.target.value)} placeholder="noreply@yourdomain.com" /></Field>
+          <Field label="SMTP Host"><Input value={form.notifications?.smtp_host || ""} onChange={(e) => updateNested("notifications", "smtp_host", e.target.value)} placeholder="smtp.gmail.com" data-testid="settings-smtp-host" /></Field>
+          <Field label="SMTP Port"><Input type="number" value={form.notifications?.smtp_port || 587} onChange={(e) => updateNested("notifications", "smtp_port", Number(e.target.value))} /></Field>
+          <Field label="SMTP Username"><Input value={form.notifications?.smtp_username || ""} onChange={(e) => updateNested("notifications", "smtp_username", e.target.value)} data-testid="settings-smtp-username" /></Field>
+          <Field label="SMTP Password"><Input type="password" value={form.notifications?.smtp_password || ""} onChange={(e) => updateNested("notifications", "smtp_password", e.target.value)} placeholder="App password / API key" data-testid="settings-smtp-password" /></Field>
+        </div>
+      </Section>
+
+      <Section title="WhatsApp API Notifications">
+        <p className="text-xs text-muted-foreground -mt-1">Configure Meta WhatsApp Cloud API (or another provider) to auto-send WhatsApp alerts to your team when patients book or enquire.</p>
+        <div className="flex items-center gap-2">
+          <Switch checked={!!form.notifications?.whatsapp_enabled} onCheckedChange={(v) => updateNested("notifications", "whatsapp_enabled", v)} data-testid="settings-whatsapp-enabled" />
+          <span className="text-sm">Enable WhatsApp notifications</span>
+          <Button type="button" variant="outline" size="sm" onClick={() => testNotification("whatsapp")} className="ml-auto" data-testid="settings-test-whatsapp"><MessageCircle className="w-3.5 h-3.5 mr-1" /> Send Test</Button>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <Field label="Provider"><Input value={form.notifications?.whatsapp_provider || "meta"} onChange={(e) => updateNested("notifications", "whatsapp_provider", e.target.value)} placeholder="meta" /></Field>
+          <Field label="Admin WhatsApp Number"><Input value={form.notifications?.whatsapp_admin_number || ""} onChange={(e) => updateNested("notifications", "whatsapp_admin_number", e.target.value)} placeholder="+91XXXXXXXXXX" data-testid="settings-whatsapp-admin" /></Field>
+          <Field label="Access Token" className="sm:col-span-2"><Input type="password" value={form.notifications?.whatsapp_access_token || ""} onChange={(e) => updateNested("notifications", "whatsapp_access_token", e.target.value)} placeholder="EAAG..." data-testid="settings-whatsapp-token" /></Field>
+          <Field label="Phone Number ID"><Input value={form.notifications?.whatsapp_phone_id || ""} onChange={(e) => updateNested("notifications", "whatsapp_phone_id", e.target.value)} data-testid="settings-whatsapp-phone-id" /></Field>
+          <Field label="Business Account ID"><Input value={form.notifications?.whatsapp_business_id || ""} onChange={(e) => updateNested("notifications", "whatsapp_business_id", e.target.value)} /></Field>
+          <Field label="Webhook URL" className="sm:col-span-2"><Input value={form.notifications?.whatsapp_webhook_url || ""} onChange={(e) => updateNested("notifications", "whatsapp_webhook_url", e.target.value)} placeholder="https://yourdomain.com/api/whatsapp/webhook" /></Field>
+          <Field label="Appointment Template" className="sm:col-span-2">
+            <Textarea rows={5} value={form.notifications?.whatsapp_appointment_template || ""} onChange={(e) => updateNested("notifications", "whatsapp_appointment_template", e.target.value)} placeholder={"🩺 New Appointment at {{clinic}}\nPatient: {{name}}\nPhone: {{phone}}\nService: {{service}}\nPreferred: {{date}} {{time}}\nID: {{code}}"} data-testid="settings-whatsapp-template-apt" />
+          </Field>
+          <Field label="Contact Enquiry Template" className="sm:col-span-2">
+            <Textarea rows={4} value={form.notifications?.whatsapp_contact_template || ""} onChange={(e) => updateNested("notifications", "whatsapp_contact_template", e.target.value)} placeholder={"📩 New enquiry at {{clinic}}\nFrom: {{name}}\nPhone: {{phone}}\nMessage: {{message}}"} />
+          </Field>
+        </div>
+      </Section>
+
+      <Section title="Privacy Policy Content">
+        <p className="text-xs text-muted-foreground -mt-1">Optional — override the default privacy policy page content with your own text. Leave empty to use the default template.</p>
+        <Textarea rows={6} value={form.privacy_policy || ""} onChange={(e) => update("privacy_policy", e.target.value)} placeholder="Your custom privacy policy text (optional)..." />
       </Section>
     </form>
   );

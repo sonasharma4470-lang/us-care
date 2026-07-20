@@ -22,7 +22,7 @@ function HeroSlider({ slides }) {
   const slide = slides[i];
 
   return (
-    <section className="relative h-[92vh] min-h-[600px] w-full overflow-hidden" data-testid="hero-slider">
+    <section className="relative h-[70vh] min-h-[480px] md:h-[92vh] md:min-h-[600px] w-full overflow-hidden" data-testid="hero-slider">
       <AnimatePresence mode="wait">
         <motion.div
           key={i}
@@ -48,19 +48,19 @@ function HeroSlider({ slides }) {
             <div className="inline-flex items-center gap-2 pill bg-white/15 text-white backdrop-blur-md border border-white/20 mb-6">
               <Sparkles className="w-3 h-3" /> Premium Physiotherapy Care
             </div>
-            <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05]">
+            <h1 className="font-heading text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05]">
               {slide.heading}
             </h1>
-            <p className="mt-5 text-lg md:text-xl text-white/90 font-medium">{slide.subheading}</p>
-            <p className="mt-3 text-sm md:text-base text-white/75 leading-relaxed max-w-xl">{slide.description}</p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <p className="mt-3 sm:mt-5 text-base sm:text-lg md:text-xl text-white/90 font-medium">{slide.subheading}</p>
+            <p className="mt-2 sm:mt-3 text-xs sm:text-sm md:text-base text-white/75 leading-relaxed max-w-xl line-clamp-3 sm:line-clamp-none">{slide.description}</p>
+            <div className="mt-5 sm:mt-8 flex flex-wrap gap-2 sm:gap-3">
               <Link to={slide.cta_link || "/appointment"} data-testid={`hero-cta-${i}`}>
-                <Button size="lg" className="rounded-full bg-white text-primary hover:bg-white/90 shadow-xl h-12 px-7">
+                <Button size="lg" className="rounded-full bg-white text-primary hover:bg-white/90 shadow-xl h-10 sm:h-12 px-5 sm:px-7 text-sm sm:text-base">
                   <Calendar className="w-4 h-4 mr-2" /> {slide.cta_text || "Book Appointment"}
                 </Button>
               </Link>
               <a href="tel:+919876543210" data-testid={`hero-call-${i}`}>
-                <Button size="lg" variant="outline" className="rounded-full h-12 px-7 bg-white/10 backdrop-blur border-white/30 text-white hover:bg-white/20">
+                <Button size="lg" variant="outline" className="rounded-full h-10 sm:h-12 px-5 sm:px-7 text-sm sm:text-base bg-white/10 backdrop-blur border-white/30 text-white hover:bg-white/20">
                   <Phone className="w-4 h-4 mr-2" /> Call Now
                 </Button>
               </a>

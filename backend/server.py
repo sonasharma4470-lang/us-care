@@ -12,13 +12,14 @@ import jwt
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Any
 
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, status, UploadFile, File, Form
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, status, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import Response as FastAPIResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
 
 from storage import init_storage, put_object, get_object, build_path
+from notifications import notify_new_appointment, notify_new_contact, send_email_smtp, send_whatsapp
 
 
 # --------- Mongo Setup ---------
@@ -265,6 +266,8 @@ class SettingsIn(BaseModel):
     hero_slides: Optional[List[dict]] = None
     homepage_hero_title: Optional[str] = None
     homepage_hero_subtitle: Optional[str] = None
+    notifications: Optional[dict] = None  # {email_enabled, smtp_host, smtp_port, smtp_username, smtp_password, smtp_from, admin_email, whatsapp_enabled, whatsapp_provider, whatsapp_access_token, whatsapp_phone_id, whatsapp_business_id, whatsapp_webhook_url, whatsapp_admin_number, whatsapp_appointment_template, whatsapp_contact_template}
+    privacy_policy: Optional[str] = None
 
 
 # --------- Auth Routes ---------
@@ -404,7 +407,7 @@ async def delete_doctor(did: str, _: dict = Depends(require_admin)):
 
 # --------- Appointments ---------
 @api.post("/appointments")
-async def create_appointment(payload: AppointmentIn):
+async def create_appointment(payload: AppointmentIn, background_tasks: BackgroundTasks):
     data = payload.model_dump()
     data["id"] = uid()
     data["appointment_code"] = "APT-" + uid()[:8].upper()
@@ -426,6 +429,18 @@ async def create_appointment(payload: AppointmentIn):
                 "address": data.get("address"),
                 "created_at": now_iso(),
             })
+    # Fire notifications (best effort, non-blocking)
+    async def _notify():
+        settings = await db.settings.find_one({"key": SETTINGS_KEY}) or {}
+        try:
+            result = await notify_new_appointment(settings, data)
+            await db.notification_log.insert_one({
+                "id": uid(), "type": "appointment", "target_id": data["id"],
+                "result": result, "created_at": now_iso(),
+            })
+        except Exception as e:
+            logger.exception("Notification failure")
+    background_tasks.add_task(_notify)
     return clean_doc(data)
 
 
@@ -586,12 +601,23 @@ async def admin_delete_gallery(gid: str, _: dict = Depends(require_admin)):
 
 # --------- Contact ---------
 @api.post("/contact")
-async def submit_contact(payload: ContactIn):
+async def submit_contact(payload: ContactIn, background_tasks: BackgroundTasks):
     data = payload.model_dump()
     data["id"] = uid()
     data["status"] = "new"
     data["created_at"] = now_iso()
     await db.contact_requests.insert_one(data)
+    async def _notify():
+        settings = await db.settings.find_one({"key": SETTINGS_KEY}) or {}
+        try:
+            result = await notify_new_contact(settings, data)
+            await db.notification_log.insert_one({
+                "id": uid(), "type": "contact", "target_id": data["id"],
+                "result": result, "created_at": now_iso(),
+            })
+        except Exception as e:
+            logger.exception("Notification failure")
+    background_tasks.add_task(_notify)
     return {"ok": True}
 
 
@@ -637,6 +663,114 @@ async def delete_faq(fid: str, _: dict = Depends(require_admin)):
     return {"ok": True}
 
 
+# --------- Account Management & Audit Logs ---------
+class ProfileIn(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    name: Optional[str] = None
+    display_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    avatar: Optional[str] = None
+    recovery_email: Optional[EmailStr] = None
+
+
+class PasswordChangeIn(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class TestNotificationIn(BaseModel):
+    channel: str  # "email" | "whatsapp"
+    to: Optional[str] = None
+
+
+def _validate_password_strength(pw: str) -> Optional[str]:
+    if not pw or len(pw) < 8:
+        return "Password must be at least 8 characters"
+    if not any(c.isupper() for c in pw):
+        return "Password must contain an uppercase letter"
+    if not any(c.isdigit() for c in pw):
+        return "Password must contain a digit"
+    return None
+
+
+async def _log_audit(user: dict, action: str, details: Optional[dict] = None, request: Optional[Request] = None):
+    entry = {
+        "id": uid(),
+        "user_id": user.get("id") if user else None,
+        "user_email": user.get("email") if user else None,
+        "action": action,
+        "details": details or {},
+        "ip": request.client.host if (request and request.client) else None,
+        "created_at": now_iso(),
+    }
+    await db.audit_logs.insert_one(entry)
+
+
+@api.get("/admin/account/me")
+async def get_account(user: dict = Depends(require_admin)):
+    doc = await db.users.find_one({"id": user["id"]})
+    if not doc:
+        raise HTTPException(404, "User not found")
+    doc.pop("_id", None)
+    doc.pop("password_hash", None)
+    return doc
+
+
+@api.put("/admin/account/me")
+async def update_account(payload: ProfileIn, request: Request, user: dict = Depends(require_admin)):
+    data = payload.model_dump(exclude_unset=True)
+    if "email" in data:
+        data["email"] = data["email"].lower()
+        # Prevent duplicate email conflict
+        existing = await db.users.find_one({"email": data["email"], "id": {"$ne": user["id"]}})
+        if existing:
+            raise HTTPException(400, "This email is already in use")
+    data["updated_at"] = now_iso()
+    await db.users.update_one({"id": user["id"]}, {"$set": data})
+    await _log_audit(user, "profile_updated", {"fields": list(data.keys())}, request)
+    doc = await db.users.find_one({"id": user["id"]})
+    doc.pop("_id", None)
+    doc.pop("password_hash", None)
+    return doc
+
+
+@api.post("/admin/account/change-password")
+async def change_password(payload: PasswordChangeIn, request: Request, user: dict = Depends(require_admin)):
+    doc = await db.users.find_one({"id": user["id"]})
+    if not doc or not verify_password(payload.current_password, doc.get("password_hash", "")):
+        raise HTTPException(400, "Current password is incorrect")
+    err = _validate_password_strength(payload.new_password)
+    if err:
+        raise HTTPException(400, err)
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"password_hash": hash_password(payload.new_password), "updated_at": now_iso()}},
+    )
+    await _log_audit(user, "password_changed", {}, request)
+    return {"ok": True}
+
+
+@api.get("/admin/audit-logs")
+async def list_audit_logs(_: dict = Depends(require_admin), limit: int = 200):
+    docs = await db.audit_logs.find({}).sort("created_at", -1).to_list(limit)
+    return [clean_doc(d) for d in docs]
+
+
+@api.post("/admin/notifications/test")
+async def test_notification(payload: TestNotificationIn, request: Request, user: dict = Depends(require_admin)):
+    settings = await db.settings.find_one({"key": SETTINGS_KEY}) or {}
+    if payload.channel == "email":
+        to = payload.to or (settings.get("notifications") or {}).get("admin_email") or settings.get("email")
+        ok, msg = await send_email_smtp(settings, to, "Test Notification", "This is a test email from your clinic admin panel.")
+    elif payload.channel == "whatsapp":
+        to = payload.to or (settings.get("notifications") or {}).get("whatsapp_admin_number") or settings.get("whatsapp")
+        ok, msg = await send_whatsapp(settings, to, "Test WhatsApp notification from your clinic admin panel.")
+    else:
+        raise HTTPException(400, "channel must be 'email' or 'whatsapp'")
+    await _log_audit(user, "notification_test", {"channel": payload.channel, "ok": ok, "detail": msg[:200]}, request)
+    return {"ok": ok, "detail": msg}
+
+
 # --------- Settings ---------
 SETTINGS_KEY = "clinic_settings"
 
@@ -651,10 +785,20 @@ async def get_settings():
 
 
 @api.put("/admin/settings")
-async def update_settings(payload: SettingsIn, _: dict = Depends(require_admin)):
+async def update_settings(payload: SettingsIn, request: Request, user: dict = Depends(require_admin)):
     data = payload.model_dump(exclude_unset=True)
     data["updated_at"] = now_iso()
     await db.settings.update_one({"key": SETTINGS_KEY}, {"$set": data}, upsert=True)
+    # Audit log — but exclude the SMTP password from the log details
+    sensitive = {"smtp_password", "whatsapp_access_token"}
+    safe_keys = list(data.keys())
+    if "notifications" in data:
+        notif = data.get("notifications") or {}
+        redacted = {k: (v if k not in sensitive else "***") for k, v in notif.items()}
+        safe_keys = [k for k in safe_keys if k != "notifications"]
+        await _log_audit(user, "settings_updated", {"fields": safe_keys, "notifications": redacted}, request)
+    else:
+        await _log_audit(user, "settings_updated", {"fields": safe_keys}, request)
     doc = await db.settings.find_one({"key": SETTINGS_KEY})
     doc.pop("_id", None)
     return doc

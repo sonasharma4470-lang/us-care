@@ -60,6 +60,7 @@ export default function Footer() {
             <li><Link to="/gallery" className="hover:text-primary" data-testid="footer-link-gallery">Gallery</Link></li>
             <li><Link to="/blog" className="hover:text-primary" data-testid="footer-link-blog">Blog</Link></li>
             <li><Link to="/appointment" className="hover:text-primary" data-testid="footer-link-appointment">Book Appointment</Link></li>
+            <li><Link to="/privacy-policy" className="hover:text-primary" data-testid="footer-link-privacy">Privacy Policy</Link></li>
           </ul>
         </div>
 
@@ -87,7 +88,7 @@ export default function Footer() {
       <div className="container-x mt-12 pt-6 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-3">
         <p className="text-xs text-slate-500">© {year} {settings.clinic_name || "Upadhyay Sharma Physiotherapist Clinic"}. All rights reserved.</p>
         <div className="flex gap-4 text-xs text-slate-500">
-          <Link to="/contact" className="hover:text-primary">Privacy Policy</Link>
+          <Link to="/privacy-policy" className="hover:text-primary" data-testid="footer-bottom-privacy">Privacy Policy</Link>
           <Link to="/contact" className="hover:text-primary">Terms & Conditions</Link>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import React from "react";
 import { Outlet, Link, NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, CalendarCheck, Stethoscope, Sparkles, Star, Image as ImageIcon, MessageSquare, FileText, Settings as SettingsIcon, LogOut } from "lucide-react";
+import { LayoutDashboard, CalendarCheck, Stethoscope, Sparkles, Star, Image as ImageIcon, MessageSquare, FileText, Settings as SettingsIcon, LogOut, UserCog, Activity } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ const items = [
   { to: "/admin/gallery", label: "Gallery", icon: ImageIcon },
   { to: "/admin/contact", label: "Contact", icon: MessageSquare },
   { to: "/admin/settings", label: "Settings", icon: SettingsIcon },
+  { to: "/admin/account", label: "Account", icon: UserCog },
+  { to: "/admin/audit-logs", label: "Activity Log", icon: Activity },
 ];
 
 export default function AdminLayout() {
@@ -48,7 +50,7 @@ export default function AdminLayout() {
               key={it.to}
               to={it.to}
               end={it.end}
-              data-testid={`admin-nav-${it.label.toLowerCase()}`}
+              data-testid={`admin-nav-${it.label.toLowerCase().replace(/\s+/g, '-')}`}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${
                   isActive
@@ -83,7 +85,7 @@ export default function AdminLayout() {
               key={it.to}
               to={it.to}
               end={it.end}
-              data-testid={`admin-mobile-nav-${it.label.toLowerCase()}`}
+              data-testid={`admin-mobile-nav-${it.label.toLowerCase().replace(/\s+/g, '-')}`}
               className={({ isActive }) =>
                 `shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${
                   isActive ? "bg-primary text-primary-foreground" : "text-foreground/70 bg-secondary"

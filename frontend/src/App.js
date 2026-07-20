@@ -22,6 +22,7 @@ const Blog = lazy(() => import("@/pages/Blog"));
 const BlogDetail = lazy(() => import("@/pages/BlogDetail"));
 const Contact = lazy(() => import("@/pages/Contact"));
 const Appointment = lazy(() => import("@/pages/Appointment"));
+const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
 
 const AdminLogin = lazy(() => import("@/pages/admin/Login"));
 const Dashboard = lazy(() => import("@/pages/admin/Dashboard"));
@@ -33,6 +34,8 @@ const AdminBlogs = lazy(() => import("@/pages/admin/Blogs"));
 const AdminGallery = lazy(() => import("@/pages/admin/Gallery"));
 const AdminContact = lazy(() => import("@/pages/admin/Contact"));
 const AdminSettings = lazy(() => import("@/pages/admin/Settings"));
+const AdminAccount = lazy(() => import("@/pages/admin/Account"));
+const AdminAuditLogs = lazy(() => import("@/pages/admin/AuditLogs"));
 
 function App() {
   return (
@@ -56,6 +59,7 @@ function App() {
                     <Route path="/blog/:slug" element={<BlogDetail />} />
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/appointment" element={<Appointment />} />
+                    <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                   </Route>
 
                   <Route path="/admin/login" element={<AdminLogin />} />
@@ -76,6 +80,8 @@ function App() {
                     <Route path="gallery" element={<AdminGallery />} />
                     <Route path="contact" element={<AdminContact />} />
                     <Route path="settings" element={<AdminSettings />} />
+                    <Route path="account" element={<AdminAccount />} />
+                    <Route path="audit-logs" element={<AdminAuditLogs />} />
                   </Route>
 
                   <Route path="*" element={<Navigate to="/" replace />} />

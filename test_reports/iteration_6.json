@@ -1,0 +1,45 @@
+{
+  "summary": "Iteration-6 (Notifications + Account + Audit Logs + Privacy + Mobile hero) validated end-to-end. Backend: extended /app/backend/tests/backend_test.py by +18 tests (Notifications settings shape, redacted audit logging, appointment/contact resilience to bad SMTP, notification-test channel handling, Account get/update, password change wrong/weak/success + RESTORE, audit-log actions). Total 70/70 pytest pass. Frontend: verified privacy policy page (9 sections), footer links (footer-link-privacy + footer-bottom-privacy → /privacy-policy), mobile hero height (590px in 480-700 range at 390px viewport), desktop hero (828px ≈92vh at 1440x900), admin sidebar nav items (Account + Activity Log), /admin/account form auto-populates name/email from GET /admin/account/me, profile save + password change (wrong→error, correct→success, then RESTORED to Admin@123), /admin/audit-logs table renders 49 rows, /admin/settings has all 12 notification-related testids present. FIXED one testid inconsistency in AdminLayout.jsx: `data-testid={admin-nav-${label.toLowerCase()}}` produced `admin-nav-activity log` (with a space) for the 'Activity Log' item — the spec (and the test brief) require `admin-nav-activity-log` (hyphenated). Replaced with slug-safe `.replace(/\\s+/g,'-')` for both desktop and mobile sidebar. Admin password confirmed still 'Admin@123' at end of run (curl 200).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Admin Dashboard", "issues": ["Recharts warning: 'The width(-1) and height(-1) of chart should be greater than 0' — non-blocking, likely chart container animating from 0 on mount; pre-existing (not caused by this iteration)."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "OPTIONAL: consider making `admin-nav-*` testid derivation slugify identically wherever new multi-word nav items are added in the future (fixed for now).",
+    "OPTIONAL: Recharts container 0-width warning on dashboard — set explicit `minHeight` on ResponsiveContainer or wrap in a sized div."
+  ],
+  "critical_code_review_comments": [
+    "notifications.py uses stdlib `smtplib` (blocking I/O) inside `async def send_email_smtp` — the SMTP call will block the FastAPI worker's event loop for up to 15s per attempt. Because the notify code runs in a BackgroundTask this is less critical (task runs after response is sent), but under high load consider `aiosmtplib` or `run_in_threadpool(smtplib.SMTP...)`. Not blocking for MVP.",
+    "server.py POST /appointments creates the appointment first, then schedules `_notify()` as a background task. Good — appointment succeeds even if SMTP/WhatsApp are down (verified by tests).",
+    "PUT /admin/settings redaction: sensitive keys `smtp_password` and `whatsapp_access_token` are correctly redacted to '***' in the audit-log entry (verified). Consider ALSO redacting from any error-log traces if smtp exceptions include creds.",
+    "GET /admin/audit-logs returns up to 200 entries. For long-running clinics this will grow unbounded — add pagination (skip/limit) and index on created_at (currently no index on audit_logs collection).",
+    "audit_logs collection has NO index — add `db.audit_logs.create_index('created_at')` in create_indexes(); descending sort on unindexed field will slow as the collection grows.",
+    "Password strength validator (`_validate_password_strength`) does not require a special character. Compared to typical policies this is acceptable for a small clinic admin panel but flag for future hardening.",
+    "server.py account update endpoint (`PUT /admin/account/me`) allows arbitrary field passthrough via `model_dump(exclude_unset=True)` because `ProfileIn` uses `extra='ignore'`. Good — no way for a caller to inject role/password_hash. Confirmed safe.",
+    "PrivacyPolicy.jsx: content is hard-coded in JSX; `settings.privacy_policy` field is accepted by backend but the frontend page ignores it (no admin-editable render path). Consider rendering `settings.privacy_policy` in a MarkDown block when set. Non-blocking.",
+    "Admin sidebar testid derivation used `label.toLowerCase()` — fragile for any multi-word future items. FIXED to slugify.",
+    "notify_new_appointment / notify_new_contact quietly swallow individual channel failures (returns dict), which is intentional; log write to db.notification_log captures the outcome. Good design."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (added +18 iteration-6 tests: notifications shape, audit-log redaction/order/auth, appointment+contact resilience to bad SMTP, notification-test endpoint 3 cases, account GET/PUT + same-email edge, password wrong/weak/success+RESTORE, audit-log actions coverage)",
+    "/app/frontend/src/components/AdminLayout.jsx (2 lines: replaced `label.toLowerCase()` with `label.toLowerCase().replace(/\\s+/g,'-')` for admin-nav and admin-mobile-nav testids so 'Activity Log' → 'admin-nav-activity-log' as spec requires)"
+  ],
+  "success_rate": {"backend": "100% (70/70)", "frontend": "100% (privacy-policy, mobile+desktop hero, admin nav testids, /admin/account form load+save, password change wrong/success+RESTORE, /admin/audit-logs table with 49 rows, all 12 /admin/settings notification testids present)"},
+  "test_credentials": "admin@upadhyaysharma.com / Admin@123 — verified working AT END OF RUN (curl 200 after all password-change tests; test_change_password_success_and_restore restores in both pytest and Playwright flows)",
+  "seed_data_creation": "None persistent. Test-side mutations: (a) settings.notifications toggled on/off multiple times; final state left with email_enabled=false, whatsapp_enabled=false. (b) privacy_policy briefly set to TEST value then restored. (c) tagline briefly changed then restored to 'Movement. Recovery. Rehabilitation.'. (d) admin password changed to NewStrong123 then RESTORED to Admin@123. (e) admin display_name updated with TestDisplay_<ts>. (f) 3 TEST_ appointments + 2 TEST_ contact requests created & cleaned up.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 6 complete and verified end-to-end. New surface area: (1) SettingsIn.notifications dict + SettingsIn.privacy_policy string — persisted via PUT /api/admin/settings, returned via public GET /api/settings. (2) Notification hooks fired as BackgroundTasks after POST /api/appointments and POST /api/contact — best-effort, never fail the parent request; each attempt is recorded in db.notification_log. (3) POST /api/admin/notifications/test {channel: email|whatsapp} returns {ok, detail} and audit-logs a `notification_test` entry. (4) GET/PUT /api/admin/account/me returns admin doc WITHOUT `_id` or `password_hash`; PUT audit-logs `profile_updated`. (5) POST /api/admin/account/change-password validates current pw + strength (>=8, upper, digit) and audit-logs `password_changed`. (6) GET /api/admin/audit-logs returns entries desc sorted; sensitive fields in settings_updated audit entries are redacted to '***'. (7) Frontend: /privacy-policy public route with data-testid='privacy-policy-page' + Footer links data-testid='footer-link-privacy' and 'footer-bottom-privacy'. (8) /admin/account (data-testid='admin-account-page') and /admin/audit-logs (data-testid='admin-audit-logs') admin routes. (9) Sidebar testids `admin-nav-account` and `admin-nav-activity-log` (fixed slug). (10) Home hero: h-[70vh] min-h-[480px] on mobile, h-[92vh] min-h-[600px] on desktop. audit_logs collection MISSING index on created_at (see code-review comment).",
+  "rca of the issue": "Only issue discovered was a data-testid inconsistency in AdminLayout.jsx. Repro: sidebar rendered NavLink with `data-testid={\\`admin-nav-${it.label.toLowerCase()}\\`}` which produced `admin-nav-activity log` (with a space) for the label 'Activity Log', but the iteration-6 spec and Playwright selectors expected the slug-form `admin-nav-activity-log`. Root cause: naive lowercase without whitespace collapsing. Fix: replaced with `.toLowerCase().replace(/\\s+/g,'-')` — a 2-character behavior change per location. Verified fix via Playwright query on both `admin-nav-account` and `admin-nav-activity-log` immediately after login — both PRESENT. Same fix applied to `admin-mobile-nav-*`. No functional or user-facing regression; testability only."
+}

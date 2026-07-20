@@ -713,3 +713,372 @@ class TestMediaUpload:
             body = r.json()
             assert body["path"].startswith(f"carewithus/{kind}/"), \
                 f"kind={kind} was NOT respected — path={body['path']} (backend probably reads it as query param)"
+
+# =============================================================================
+# Iteration 6: Notifications / Account / Audit Logs / Privacy Policy
+# =============================================================================
+
+
+class TestSettingsNotifications:
+    """Verify SettingsIn accepts a `notifications` object and `privacy_policy` field."""
+
+    def test_notifications_object_persists(self, api_client, auth_headers):
+        orig = api_client.get(f"{BASE_URL}/api/settings").json()
+        original_notifications = orig.get("notifications")
+        original_privacy = orig.get("privacy_policy")
+
+        notif = {
+            "email_enabled": True,
+            "smtp_host": "smtp.test.com",
+            "smtp_port": 587,
+            "smtp_username": "test@test.com",
+            "smtp_password": "TEST_smtp_secret",
+            "smtp_from": "no-reply@test.com",
+            "admin_email": "admin@test.com",
+            "whatsapp_enabled": True,
+            "whatsapp_provider": "meta",
+            "whatsapp_access_token": "TEST_wa_token_XYZ",
+            "whatsapp_phone_id": "1234567890",
+            "whatsapp_business_id": "9876543210",
+            "whatsapp_admin_number": "+919000000000",
+            "whatsapp_webhook_url": "https://test.com/hook",
+            "whatsapp_appointment_template": "Hi {{name}}, apt {{code}} on {{date}}",
+            "whatsapp_contact_template": "Hi {{name}}, thanks for reaching out.",
+        }
+        try:
+            r = api_client.put(
+                f"{BASE_URL}/api/admin/settings",
+                headers=auth_headers,
+                json={"notifications": notif, "privacy_policy": "TEST privacy policy text."},
+            )
+            assert r.status_code == 200, r.text
+            body = r.json()
+            assert body.get("privacy_policy") == "TEST privacy policy text."
+            got = body.get("notifications") or {}
+            for k, v in notif.items():
+                assert got.get(k) == v, f"notifications.{k} not persisted correctly"
+
+            # verify via GET
+            g = api_client.get(f"{BASE_URL}/api/settings").json()
+            assert g.get("privacy_policy") == "TEST privacy policy text."
+            gn = g.get("notifications") or {}
+            assert gn.get("smtp_host") == "smtp.test.com"
+            assert gn.get("whatsapp_provider") == "meta"
+        finally:
+            # restore
+            restore_body = {}
+            if original_notifications is not None:
+                restore_body["notifications"] = original_notifications
+            if original_privacy is not None:
+                restore_body["privacy_policy"] = original_privacy
+            if restore_body:
+                api_client.put(f"{BASE_URL}/api/admin/settings", headers=auth_headers, json=restore_body)
+
+
+class TestAuditLogs:
+    """Audit log entries + secret redaction."""
+
+    def test_settings_update_creates_redacted_audit_log(self, api_client, auth_headers):
+        # Trigger a settings update with sensitive fields
+        payload_notif = {
+            "email_enabled": False,
+            "smtp_host": "smtp.example.com",
+            "smtp_password": "SUPER_SECRET_PW",
+            "whatsapp_access_token": "SUPER_SECRET_TOKEN",
+        }
+        r = api_client.put(
+            f"{BASE_URL}/api/admin/settings",
+            headers=auth_headers,
+            json={"notifications": payload_notif},
+        )
+        assert r.status_code == 200
+
+        # Fetch audit logs
+        r2 = api_client.get(f"{BASE_URL}/api/admin/audit-logs", headers=auth_headers)
+        assert r2.status_code == 200
+        logs = r2.json()
+        assert isinstance(logs, list)
+        # Find the most recent settings_updated with notifications details
+        entry = next(
+            (l for l in logs if l.get("action") == "settings_updated" and (l.get("details") or {}).get("notifications")),
+            None,
+        )
+        assert entry is not None, "settings_updated audit log with notifications not found"
+        redacted = entry["details"]["notifications"]
+        # Sensitive fields must be redacted to '***'
+        assert redacted.get("smtp_password") == "***", f"smtp_password not redacted: {redacted.get('smtp_password')}"
+        assert redacted.get("whatsapp_access_token") == "***", (
+            f"whatsapp_access_token not redacted: {redacted.get('whatsapp_access_token')}"
+        )
+        # Non-sensitive fields should be preserved as-is
+        assert redacted.get("smtp_host") == "smtp.example.com"
+
+    def test_audit_logs_sorted_desc(self, api_client, auth_headers):
+        r = api_client.get(f"{BASE_URL}/api/admin/audit-logs", headers=auth_headers)
+        assert r.status_code == 200
+        logs = r.json()
+        assert isinstance(logs, list)
+        if len(logs) >= 2:
+            # descending order by created_at
+            for i in range(len(logs) - 1):
+                assert logs[i]["created_at"] >= logs[i + 1]["created_at"], "audit logs not sorted desc"
+
+    def test_audit_logs_requires_admin(self, api_client):
+        r = requests.get(f"{BASE_URL}/api/admin/audit-logs")
+        assert r.status_code in (401, 403)
+
+
+class TestAppointmentNotificationHook:
+    """Appointment/contact creation must succeed even when notifications are misconfigured."""
+
+    def test_appointment_succeeds_when_notifications_disabled(self, api_client, auth_headers):
+        # disable notifications
+        api_client.put(
+            f"{BASE_URL}/api/admin/settings",
+            headers=auth_headers,
+            json={"notifications": {"email_enabled": False, "whatsapp_enabled": False}},
+        )
+        payload = {
+            "patient_name": "TEST_Notif_Disabled",
+            "phone": "+919000001111",
+            "email": "notif_disabled@test.com",
+        }
+        r = api_client.post(f"{BASE_URL}/api/appointments", json=payload)
+        assert r.status_code == 200
+        data = r.json()
+        assert data.get("appointment_code", "").startswith("APT-")
+        # cleanup
+        api_client.delete(f"{BASE_URL}/api/admin/appointments/{data['id']}", headers=auth_headers)
+
+    def test_appointment_succeeds_with_bad_smtp(self, api_client, auth_headers):
+        # enable notifications with garbage SMTP
+        api_client.put(
+            f"{BASE_URL}/api/admin/settings",
+            headers=auth_headers,
+            json={
+                "notifications": {
+                    "email_enabled": True,
+                    "smtp_host": "smtp.does-not-exist.invalid",
+                    "smtp_port": 587,
+                    "smtp_username": "bad@bad.com",
+                    "smtp_password": "bad",
+                    "smtp_from": "bad@bad.com",
+                    "admin_email": "admin@test.com",
+                    "whatsapp_enabled": False,
+                }
+            },
+        )
+        payload = {
+            "patient_name": "TEST_BadSMTP",
+            "phone": "+919000002222",
+        }
+        r = api_client.post(f"{BASE_URL}/api/appointments", json=payload)
+        assert r.status_code == 200, f"appointment failed despite bad SMTP: {r.text}"
+        aid = r.json()["id"]
+        # cleanup
+        api_client.delete(f"{BASE_URL}/api/admin/appointments/{aid}", headers=auth_headers)
+
+    def test_contact_succeeds_with_bad_smtp(self, api_client, auth_headers):
+        r = api_client.post(
+            f"{BASE_URL}/api/contact",
+            json={
+                "name": "TEST_Notif_Contact",
+                "email": "notif_contact@test.com",
+                "message": "test",
+            },
+        )
+        assert r.status_code == 200
+        assert r.json().get("ok") is True
+
+    def test_notifications_disabled_after(self, api_client, auth_headers):
+        """Restore notifications OFF at end of this class to avoid leaking to other tests."""
+        api_client.put(
+            f"{BASE_URL}/api/admin/settings",
+            headers=auth_headers,
+            json={"notifications": {"email_enabled": False, "whatsapp_enabled": False}},
+        )
+
+
+class TestNotificationTestEndpoint:
+    def test_email_channel_without_config(self, api_client, auth_headers):
+        # ensure email is disabled
+        api_client.put(
+            f"{BASE_URL}/api/admin/settings",
+            headers=auth_headers,
+            json={"notifications": {"email_enabled": False}},
+        )
+        r = api_client.post(
+            f"{BASE_URL}/api/admin/notifications/test",
+            headers=auth_headers,
+            json={"channel": "email"},
+        )
+        assert r.status_code == 200
+        body = r.json()
+        assert body.get("ok") is False
+        assert "detail" in body
+
+    def test_whatsapp_channel_without_config(self, api_client, auth_headers):
+        api_client.put(
+            f"{BASE_URL}/api/admin/settings",
+            headers=auth_headers,
+            json={"notifications": {"whatsapp_enabled": False}},
+        )
+        r = api_client.post(
+            f"{BASE_URL}/api/admin/notifications/test",
+            headers=auth_headers,
+            json={"channel": "whatsapp"},
+        )
+        assert r.status_code == 200
+        body = r.json()
+        assert body.get("ok") is False
+        assert "detail" in body
+
+    def test_invalid_channel(self, api_client, auth_headers):
+        r = api_client.post(
+            f"{BASE_URL}/api/admin/notifications/test",
+            headers=auth_headers,
+            json={"channel": "invalid"},
+        )
+        assert r.status_code == 400
+
+
+class TestAccountEndpoint:
+    def test_get_account_me(self, api_client, auth_headers):
+        r = api_client.get(f"{BASE_URL}/api/admin/account/me", headers=auth_headers)
+        assert r.status_code == 200
+        data = r.json()
+        assert data.get("email") == ADMIN_EMAIL
+        assert "password_hash" not in data
+        assert "_id" not in data
+        assert "id" in data
+
+    def test_update_profile(self, api_client, auth_headers):
+        # capture original for restore
+        orig = api_client.get(f"{BASE_URL}/api/admin/account/me", headers=auth_headers).json()
+        original_name = orig.get("name")
+        original_display = orig.get("display_name")
+        try:
+            payload = {
+                "name": "TEST_Super Admin",
+                "display_name": "TEST_Admin",
+                "avatar": "https://example.com/av.png",
+                "recovery_email": "recovery_admin@test.com",
+            }
+            r = api_client.put(
+                f"{BASE_URL}/api/admin/account/me", headers=auth_headers, json=payload
+            )
+            assert r.status_code == 200, r.text
+            body = r.json()
+            assert body.get("name") == "TEST_Super Admin"
+            assert body.get("display_name") == "TEST_Admin"
+            assert body.get("avatar") == "https://example.com/av.png"
+            assert body.get("recovery_email") == "recovery_admin@test.com"
+        finally:
+            # restore
+            restore = {}
+            if original_name is not None:
+                restore["name"] = original_name
+            if original_display is not None:
+                restore["display_name"] = original_display
+            if restore:
+                api_client.put(f"{BASE_URL}/api/admin/account/me", headers=auth_headers, json=restore)
+
+    def test_update_email_same_email_succeeds(self, api_client, auth_headers):
+        # Update to the same email should succeed (no conflict against self)
+        r = api_client.put(
+            f"{BASE_URL}/api/admin/account/me",
+            headers=auth_headers,
+            json={"email": ADMIN_EMAIL},
+        )
+        assert r.status_code == 200
+        assert r.json().get("email") == ADMIN_EMAIL
+
+
+class TestPasswordChange:
+    """Change password validation flow. MUST restore to Admin@123 at the end."""
+
+    NEW_PW = "NewStrong123"
+
+    def test_wrong_current_password(self, api_client, auth_headers):
+        r = api_client.post(
+            f"{BASE_URL}/api/admin/account/change-password",
+            headers=auth_headers,
+            json={"current_password": "wrong_pw", "new_password": self.NEW_PW},
+        )
+        assert r.status_code == 400
+        assert "current password" in r.text.lower()
+
+    def test_weak_new_password(self, api_client, auth_headers):
+        r = api_client.post(
+            f"{BASE_URL}/api/admin/account/change-password",
+            headers=auth_headers,
+            json={"current_password": ADMIN_PASSWORD, "new_password": "abc"},
+        )
+        assert r.status_code == 400
+
+    def test_change_password_success_and_restore(self, api_client, auth_headers):
+        # Change to strong new password
+        r = api_client.post(
+            f"{BASE_URL}/api/admin/account/change-password",
+            headers=auth_headers,
+            json={"current_password": ADMIN_PASSWORD, "new_password": self.NEW_PW},
+        )
+        assert r.status_code == 200, r.text
+        assert r.json().get("ok") is True
+
+        # Old password no longer works
+        r_old = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD},
+        )
+        assert r_old.status_code == 401
+
+        # New password logs in
+        r_new = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": ADMIN_EMAIL, "password": self.NEW_PW},
+        )
+        assert r_new.status_code == 200
+        new_token = r_new.json().get("token")
+        new_headers = {"Authorization": f"Bearer {new_token}"}
+
+        # CRITICAL: RESTORE original password
+        r_restore = requests.post(
+            f"{BASE_URL}/api/admin/account/change-password",
+            headers=new_headers,
+            json={"current_password": self.NEW_PW, "new_password": ADMIN_PASSWORD},
+        )
+        assert r_restore.status_code == 200, "FAILED TO RESTORE ADMIN PASSWORD"
+        # Verify restored
+        r_verify = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD},
+        )
+        assert r_verify.status_code == 200, "CRITICAL: admin password not restored to Admin@123"
+
+    def test_audit_log_contains_change_events(self, api_client, auth_headers):
+        # Trigger each event type inline so this test is order-independent (pytest-xdist safe)
+        api_client.put(
+            f"{BASE_URL}/api/admin/account/me",
+            headers=auth_headers,
+            json={"display_name": "audit_check_" + str(int(__import__('time').time()))},
+        )
+        api_client.put(
+            f"{BASE_URL}/api/admin/settings",
+            headers=auth_headers,
+            json={"tagline": "audit_check"},
+        )
+        # Restore tagline
+        api_client.put(
+            f"{BASE_URL}/api/admin/settings",
+            headers=auth_headers,
+            json={"tagline": "Movement. Recovery. Rehabilitation."},
+        )
+        r = api_client.get(f"{BASE_URL}/api/admin/audit-logs", headers=auth_headers)
+        assert r.status_code == 200
+        logs = r.json()
+        actions = {l.get("action") for l in logs}
+        assert "password_changed" in actions
+        assert "profile_updated" in actions
+        assert "settings_updated" in actions
+

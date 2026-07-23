@@ -15,7 +15,10 @@ export default function AdminSettings() {
   const [form, setForm] = useState(settings);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { setForm(settings); }, [settings]);
+  useEffect(() => {
+    // Fetch UNREDACTED settings for admin editing (SMTP password + WhatsApp token visible)
+    api.get("/admin/settings").then((r) => setForm(r.data)).catch(() => setForm(settings));
+  }, [settings]);
 
   const save = async (e) => {
     e.preventDefault();

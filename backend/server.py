@@ -921,9 +921,37 @@ async def test_notification(payload: TestNotificationIn, request: Request, user:
 # --------- Settings ---------
 SETTINGS_KEY = "clinic_settings"
 
+# Fields that must NEVER be returned by the public GET /api/settings endpoint
+_SENSITIVE_NOTIFICATION_KEYS = {
+    "smtp_password",
+    "whatsapp_access_token",
+}
+
+
+def _redact_public_settings(doc: dict) -> dict:
+    """Remove or mask sensitive fields from a settings document before public exposure."""
+    if not doc:
+        return doc
+    doc = {k: v for k, v in doc.items() if k not in ("_id",)}
+    if isinstance(doc.get("notifications"), dict):
+        doc["notifications"] = {
+            k: ("***" if k in _SENSITIVE_NOTIFICATION_KEYS and v else v)
+            for k, v in doc["notifications"].items()
+        }
+    return doc
+
 
 @api.get("/settings")
 async def get_settings():
+    doc = await db.settings.find_one({"key": SETTINGS_KEY})
+    if not doc:
+        return {}
+    return _redact_public_settings(doc)
+
+
+@api.get("/admin/settings")
+async def get_admin_settings(_: dict = Depends(require_admin)):
+    """Admin-only unredacted settings — includes SMTP password and WhatsApp token."""
     doc = await db.settings.find_one({"key": SETTINGS_KEY})
     if not doc:
         return {}

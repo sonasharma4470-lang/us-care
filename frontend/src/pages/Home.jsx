@@ -219,19 +219,10 @@ export default function Home() {
         <div className="container-x grid lg:grid-cols-2 gap-8 md:gap-12 items-center">
           <div className="relative">
             <SafeImage
-              src="https://images.pexels.com/photos/16571733/pexels-photo-16571733.jpeg"
-              alt="Clinic interior"
+              src="https://customer-assets-wrfwihn1.emergentagent.net/job_physio-care-platform/artifacts/5p5tjsak_WhatsApp%20Image%202026-07-19%20at%209.06.12%20PM%20%281%29.jpeg"
+              alt="CARE WITH US Physiotherapy OPD clinic interior"
               className="rounded-3xl shadow-2xl w-full h-[320px] sm:h-[400px] lg:h-[500px] object-cover"
             />
-            <div className="absolute -bottom-6 -right-6 glass rounded-2xl p-5 max-w-[220px] hidden md:block">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="flex">
-                  {[1, 2, 3, 4, 5].map((s) => <Star key={s} className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" />)}
-                </div>
-                <span className="text-xs font-bold">4.9</span>
-              </div>
-              <p className="text-xs text-foreground/80 leading-snug">Rated by patients across Jaipur.</p>
-            </div>
           </div>
           <div>
             <div className="pill bg-accent/10 text-accent mb-4">About the Clinic</div>

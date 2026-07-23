@@ -145,3 +145,16 @@ Build a Premium, Modern, Luxury, Professional Medical website for **Upadhyay Sha
 - 2FA, Session timeout, Force password change, Logout-all-devices
 - Advanced role permissions matrix
 - Timezone-aware slot filtering (currently uses UTC — fine for future dates, edge for same-day)
+
+
+## Iteration 8 — "Happy Patients" Full Cleanup (Feb 2026)
+- Removed "12,500+ Happy Patients" chip from Home trust bar (Home.jsx L206).
+- Removed "Trusted by 12,500+ patients across India" glass badge on Home about card (Home.jsx L233).
+- Replaced "12,500+ patients treated across India" bullet on About page with "Trusted by patients across Jaipur" (About.jsx L29).
+- Removed `happy_patients` key from default settings seed (`server.py` counters) and `migrate_real_content.py`.
+- Removed `happy_patients` from admin Settings save payload (`admin/Settings.jsx`).
+- One-off DB migration: `$unset counters.happy_patients` on existing settings doc (verified: field gone).
+- Verified via Playwright: "happy patient" / "12,500+ patient" substrings absent from Home and About pages.
+
+## Pending (user-deferred)
+- Make "About the Clinic" section fully editable from Admin Panel (title, description, mission, vision, image). User said: baad me karenge.

@@ -1140,7 +1140,6 @@ async def seed_content():
             "vision": "To be the most trusted name in physiotherapy in India, blending science, technology and human warmth.",
             "about": "Upadhyay Sharma Physiotherapist Clinic is a premier physiotherapy destination dedicated to healing with dignity. Our team of certified physiotherapists brings decades of combined expertise across orthopedic, neurological, sports, and geriatric rehabilitation.",
             "counters": {
-                "happy_patients": 12500,
                 "years_experience": 18,
                 "treatments_completed": 45000,
                 "recovery_rate": 96,

@@ -254,7 +254,6 @@ async def main():
         "vision": "To become a trusted center of excellence in physiotherapy and rehabilitation by delivering ethical, innovative, and evidence-based healthcare.",
         "about": "CARE WITH US is a comprehensive physiotherapy and rehabilitation clinic located on the 3rd Floor, Aastha Hospital, Pratap Nagar, Jaipur. We believe that every patient deserves personalized treatment based on scientific assessment and modern rehabilitation techniques. Whether you are recovering from an injury, surgery, neurological condition, or chronic pain, our team is dedicated to helping you achieve your rehabilitation goals.",
         "counters": {
-            "happy_patients": 500,
             "years_experience": 5,
             "treatments_completed": 2500,
             "recovery_rate": 95,

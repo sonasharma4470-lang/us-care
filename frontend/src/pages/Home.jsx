@@ -203,7 +203,6 @@ export default function Home() {
           {[
             { icon: ShieldCheck, text: "IAP Registered" },
             { icon: Award, text: "18+ Years Experience" },
-            { icon: HeartPulse, text: "12,500+ Happy Patients" },
             { icon: Star, text: "4.9 / 5 Rating" },
             { icon: HomeIcon, text: "Home Visits" },
           ].map((t, idx) => (
@@ -231,7 +230,7 @@ export default function Home() {
                 </div>
                 <span className="text-xs font-bold">4.9</span>
               </div>
-              <p className="text-xs text-foreground/80 leading-snug">Trusted by 12,500+ patients across India.</p>
+              <p className="text-xs text-foreground/80 leading-snug">Rated by patients across Jaipur.</p>
             </div>
           </div>
           <div>

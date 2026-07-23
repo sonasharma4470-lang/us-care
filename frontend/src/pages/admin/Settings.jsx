@@ -27,7 +27,6 @@ export default function AdminSettings() {
       await api.put("/admin/settings", {
         ...form,
         counters: {
-          happy_patients: Number(form.counters?.happy_patients) || 0,
           years_experience: Number(form.counters?.years_experience) || 0,
           treatments_completed: Number(form.counters?.treatments_completed) || 0,
           recovery_rate: Number(form.counters?.recovery_rate) || 0,

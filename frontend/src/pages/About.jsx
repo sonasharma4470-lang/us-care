@@ -26,7 +26,7 @@ export default function About() {
             <h2 className="font-heading text-3xl md:text-4xl font-semibold">Our Story</h2>
             <p className="mt-4 text-muted-foreground leading-relaxed">{settings.about}</p>
             <div className="mt-6 space-y-3">
-              {["Evidence-based, patient-first care", "Latest equipment and modern facilities", "18+ years of clinical excellence", "12,500+ patients treated across India"].map((t) => (
+              {["Evidence-based, patient-first care", "Latest equipment and modern facilities", "18+ years of clinical excellence", "Trusted by patients across Jaipur"].map((t) => (
                 <div key={t} className="flex items-start gap-2">
                   <CheckCircle2 className="w-5 h-5 text-primary mt-0.5" />
                   <span className="text-sm">{t}</span>

@@ -171,6 +171,8 @@ class DoctorIn(BaseModel):
     display_order: Optional[int] = 0
     featured: Optional[bool] = False
     active: Optional[bool] = True
+    availability: Optional[dict] = None  # {"monday": ["09:00-13:00", "15:00-20:00"], ...}
+    slot_duration: Optional[int] = 30  # minutes
 
 
 class ServiceIn(BaseModel):
@@ -268,6 +270,12 @@ class SettingsIn(BaseModel):
     homepage_hero_subtitle: Optional[str] = None
     notifications: Optional[dict] = None  # {email_enabled, smtp_host, smtp_port, smtp_username, smtp_password, smtp_from, admin_email, whatsapp_enabled, whatsapp_provider, whatsapp_access_token, whatsapp_phone_id, whatsapp_business_id, whatsapp_webhook_url, whatsapp_admin_number, whatsapp_appointment_template, whatsapp_contact_template}
     privacy_policy: Optional[str] = None
+    homepage_stats: Optional[List[dict]] = None
+    hero_overlay: Optional[dict] = None
+    seo: Optional[dict] = None
+    analytics: Optional[dict] = None
+    maintenance: Optional[dict] = None
+    status_templates: Optional[dict] = None
 
 
 # --------- Auth Routes ---------
@@ -453,16 +461,155 @@ async def list_appointments(_: dict = Depends(require_admin), status_filter: Opt
     return [clean_doc(d) for d in docs]
 
 
+@api.get("/appointments/available-slots")
+async def available_slots(doctor_id: Optional[str] = None, date: Optional[str] = None):
+    """Return available time slots for a given doctor on a given date (YYYY-MM-DD)."""
+    from datetime import date as date_cls, datetime as dt, time as tm, timedelta as td
+    if not date:
+        return {"slots": [], "reason": "date required"}
+    try:
+        target = dt.strptime(date, "%Y-%m-%d").date()
+    except ValueError:
+        return {"slots": [], "reason": "invalid date"}
+    today = dt.now(timezone.utc).date()
+    if target < today:
+        return {"slots": [], "reason": "past date"}
+    weekday = target.strftime("%A").lower()  # monday, tuesday, ...
+    # Load doctor availability (or fallback to global business hours)
+    availability = None
+    slot_duration = 30
+    if doctor_id:
+        d = await db.doctors.find_one({"id": doctor_id})
+        if d:
+            availability = (d.get("availability") or {}).get(weekday)
+            slot_duration = int(d.get("slot_duration") or 30)
+    if not availability:
+        # Fallback: use global business hours as one range
+        s = await db.settings.find_one({"key": SETTINGS_KEY}) or {}
+        bh = (s.get("business_hours") or {}).get(weekday, "")
+        # Parse "9:00 AM - 8:00 PM"
+        if bh and "-" in bh:
+            try:
+                start_s, end_s = [p.strip() for p in bh.split("-", 1)]
+                start_dt = dt.strptime(start_s, "%I:%M %p")
+                end_dt = dt.strptime(end_s, "%I:%M %p")
+                availability = [f"{start_dt.strftime('%H:%M')}-{end_dt.strftime('%H:%M')}"]
+            except Exception:
+                availability = []
+        else:
+            availability = []
+    if not availability:
+        return {"slots": [], "reason": "closed"}
+
+    # Generate slots
+    slots = []
+    now_local = dt.now(timezone.utc)
+    for rng in availability:
+        try:
+            s_str, e_str = rng.split("-", 1)
+            s_h, s_m = [int(x) for x in s_str.strip().split(":")]
+            e_h, e_m = [int(x) for x in e_str.strip().split(":")]
+            cur = dt.combine(target, tm(s_h, s_m))
+            end = dt.combine(target, tm(e_h, e_m))
+            step = td(minutes=slot_duration)
+            while cur + step <= end:
+                slot_str = cur.strftime("%H:%M")
+                # Skip past slots when target is today (compare naive with server local; acceptable approximation)
+                if target == today and cur.time() <= now_local.time():
+                    cur += step
+                    continue
+                slots.append(slot_str)
+                cur += step
+        except Exception:
+            continue
+
+    # Remove already-booked slots
+    q = {"preferred_date": date, "status": {"$in": ["pending", "confirmed", "rescheduled"]}}
+    if doctor_id:
+        q["doctor_id"] = doctor_id
+    booked = await db.appointments.find(q).to_list(1000)
+    booked_times = {b.get("preferred_time") for b in booked if b.get("preferred_time")}
+    slots = [s for s in slots if s not in booked_times]
+    return {"slots": slots, "slot_duration": slot_duration, "weekday": weekday}
+
+
 @api.patch("/admin/appointments/{aid}")
-async def update_appointment_status(aid: str, payload: AppointmentStatus, _: dict = Depends(require_admin)):
+async def update_appointment_status(aid: str, payload: AppointmentStatus, background_tasks: BackgroundTasks, _: dict = Depends(require_admin)):
+    old = await db.appointments.find_one({"id": aid})
+    if not old:
+        raise HTTPException(404, "Not found")
     await db.appointments.update_one(
         {"id": aid},
         {"$set": {"status": payload.status, "updated_at": now_iso()}},
     )
     doc = await db.appointments.find_one({"id": aid})
-    if not doc:
-        raise HTTPException(404, "Not found")
+
+    # Fire status-change notification to patient if status actually changed
+    if old.get("status") != payload.status and payload.status in ("confirmed", "cancelled", "rescheduled"):
+        async def _notify_patient():
+            settings = await db.settings.find_one({"key": SETTINGS_KEY}) or {}
+            templates = settings.get("status_templates") or {}
+            notif_settings = settings.get("notifications") or {}
+            ctx = {
+                "clinic": settings.get("clinic_name", "Clinic"),
+                "name": doc.get("patient_name", ""),
+                "code": doc.get("appointment_code", ""),
+                "phone": doc.get("phone", ""),
+                "service": doc.get("service_name", "") or "-",
+                "doctor": doc.get("doctor_name", "") or "-",
+                "date": doc.get("preferred_date", "") or "-",
+                "time": doc.get("preferred_time", "") or "-",
+                "status": payload.status,
+            }
+            # Email
+            email_tpl = templates.get(f"{payload.status}_email")
+            if doc.get("email") and email_tpl and notif_settings.get("email_enabled"):
+                from notifications import render_template, send_email_smtp
+                body = render_template(email_tpl, ctx)
+                subj = f"[{ctx['clinic']}] Your appointment {payload.status}"
+                ok, msg = await send_email_smtp(settings, doc["email"], subj, body)
+                await db.notification_log.insert_one({
+                    "id": uid(), "type": f"appointment_{payload.status}_email",
+                    "target_id": aid, "result": {"ok": ok, "detail": msg}, "created_at": now_iso(),
+                })
+            # WhatsApp
+            wa_tpl = templates.get(f"{payload.status}_whatsapp")
+            recipient = doc.get("whatsapp") or doc.get("phone")
+            if recipient and wa_tpl and notif_settings.get("whatsapp_enabled"):
+                from notifications import render_template, send_whatsapp
+                body = render_template(wa_tpl, ctx)
+                ok, msg = await send_whatsapp(settings, recipient, body)
+                await db.notification_log.insert_one({
+                    "id": uid(), "type": f"appointment_{payload.status}_whatsapp",
+                    "target_id": aid, "result": {"ok": ok, "detail": msg}, "created_at": now_iso(),
+                })
+        background_tasks.add_task(_notify_patient)
     return clean_doc(doc)
+
+
+@api.get("/system/health")
+async def system_health():
+    """Public-ish endpoint to check subsystem status."""
+    checks = {}
+    try:
+        await db.command("ping")
+        checks["database"] = {"status": "healthy"}
+    except Exception as e:
+        checks["database"] = {"status": "error", "detail": str(e)[:100]}
+    checks["backend"] = {"status": "healthy"}
+    settings = await db.settings.find_one({"key": SETTINGS_KEY}) or {}
+    ns = settings.get("notifications") or {}
+    checks["email"] = {"status": "configured" if (ns.get("email_enabled") and ns.get("smtp_host")) else "not_configured"}
+    checks["whatsapp"] = {"status": "configured" if (ns.get("whatsapp_enabled") and ns.get("whatsapp_access_token")) else "not_configured"}
+    checks["media_storage"] = {"status": "healthy"}
+    return {"status": "healthy", "checks": checks}
+
+
+@api.get("/maintenance")
+async def get_maintenance():
+    """Public endpoint used by the frontend to check maintenance status."""
+    s = await db.settings.find_one({"key": SETTINGS_KEY}) or {}
+    return s.get("maintenance") or {"enabled": False}
 
 
 @api.delete("/admin/appointments/{aid}")

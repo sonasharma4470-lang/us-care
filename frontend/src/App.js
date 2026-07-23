@@ -1,9 +1,9 @@
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useEffect } from "react";
 import "@/App.css";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/context/AuthContext";
-import { SettingsProvider } from "@/context/SettingsContext";
+import { SettingsProvider, useSettings } from "@/context/SettingsContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import PublicLayout from "@/components/PublicLayout";
 import AdminLayout from "@/components/AdminLayout";
@@ -23,6 +23,7 @@ const BlogDetail = lazy(() => import("@/pages/BlogDetail"));
 const Contact = lazy(() => import("@/pages/Contact"));
 const Appointment = lazy(() => import("@/pages/Appointment"));
 const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
+const MaintenancePage = lazy(() => import("@/pages/MaintenancePage"));
 
 const AdminLogin = lazy(() => import("@/pages/admin/Login"));
 const Dashboard = lazy(() => import("@/pages/admin/Dashboard"));
@@ -37,6 +38,35 @@ const AdminSettings = lazy(() => import("@/pages/admin/Settings"));
 const AdminAccount = lazy(() => import("@/pages/admin/Account"));
 const AdminAuditLogs = lazy(() => import("@/pages/admin/AuditLogs"));
 
+function MaintenanceGate({ children }) {
+  const { settings } = useSettings();
+  const location = useLocation();
+  const enabled = !!settings.maintenance?.enabled;
+  // Always allow admin routes
+  if (enabled && !location.pathname.startsWith("/admin")) {
+    return <MaintenancePage />;
+  }
+  return children;
+}
+
+function AnalyticsInjector() {
+  const { settings } = useSettings();
+  const gaId = settings.analytics?.google_analytics_id;
+  useEffect(() => {
+    if (!gaId || document.getElementById("ga-script")) return;
+    const s = document.createElement("script");
+    s.id = "ga-script";
+    s.async = true;
+    s.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+    document.head.appendChild(s);
+    const inline = document.createElement("script");
+    inline.id = "ga-inline";
+    inline.text = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}');`;
+    document.head.appendChild(inline);
+  }, [gaId]);
+  return null;
+}
+
 function App() {
   return (
     <ThemeProvider>
@@ -44,7 +74,9 @@ function App() {
         <SettingsProvider>
           <div className="App">
             <BrowserRouter>
+              <AnalyticsInjector />
               <Suspense fallback={<PageLoader />}>
+                <MaintenanceGate>
                 <Routes>
                   <Route element={<PublicLayout />}>
                     <Route path="/" element={<Home />} />
@@ -86,6 +118,7 @@ function App() {
 
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
+                </MaintenanceGate>
               </Suspense>
               <Toaster position="top-right" richColors />
             </BrowserRouter>

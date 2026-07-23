@@ -10,7 +10,7 @@ import SectionTitle from "@/components/SectionTitle";
 import SafeImage, { resolveImageUrl } from "@/components/SafeImage";
 
 // ---------- Hero Slider ----------
-function HeroSlider({ slides }) {
+function HeroSlider({ slides, overlay }) {
   const [i, setI] = useState(0);
   const total = slides?.length || 0;
   useEffect(() => {
@@ -21,8 +21,28 @@ function HeroSlider({ slides }) {
   if (!total) return null;
   const slide = slides[i];
 
+  // Build overlay style from settings (fallback to default hero-gradient-overlay class)
+  const ov = overlay || {};
+  const gradEnabled = ov.gradient_enabled !== false;
+  const opacity = typeof ov.opacity === "number" ? ov.opacity : 0.7;
+  const bgColor = ov.color || "#0B2B4A";
+  const from = ov.gradient_from || "rgba(11, 43, 74, 0.85)";
+  const via = ov.gradient_via || "rgba(11, 143, 211, 0.55)";
+  const to = ov.gradient_to || "rgba(13, 148, 136, 0.30)";
+  const direction = ov.gradient_direction || "115deg";
+  const overlayStyle = gradEnabled
+    ? { background: `linear-gradient(${direction}, ${from} 0%, ${via} 55%, ${to} 100%)` }
+    : { backgroundColor: bgColor, opacity };
+
+  const heightClass = ov.mobile_height || ov.desktop_height
+    ? ""
+    : "h-[70vh] min-h-[480px] md:h-[92vh] md:min-h-[600px]";
+  const inlineHeight = (ov.mobile_height || ov.desktop_height)
+    ? { minHeight: `${ov.mobile_height || 480}px` }
+    : {};
+
   return (
-    <section className="relative h-[70vh] min-h-[480px] md:h-[92vh] md:min-h-[600px] w-full overflow-hidden" data-testid="hero-slider">
+    <section className={`relative ${heightClass} w-full overflow-hidden`} style={inlineHeight} data-testid="hero-slider">
       <AnimatePresence mode="wait">
         <motion.div
           key={i}
@@ -32,8 +52,8 @@ function HeroSlider({ slides }) {
           transition={{ duration: 1.2, ease: "easeOut" }}
           className="absolute inset-0"
         >
-          <img src={resolveImageUrl(slide.image)} alt={slide.heading} className="img-cover" loading={i === 0 ? "eager" : "lazy"} decoding="async" fetchPriority={i === 0 ? "high" : "auto"} onError={(e) => { e.currentTarget.style.opacity = '0.5'; }} />
-          <div className="absolute inset-0 hero-gradient-overlay" />
+          <img src={resolveImageUrl(slide.image)} alt={slide.heading} className="img-cover" loading={i === 0 ? "eager" : "lazy"} decoding="async" fetchPriority={i === 0 ? "high" : "auto"} />
+          <div className="absolute inset-0" style={overlayStyle} data-testid="hero-overlay" />
         </motion.div>
       </AnimatePresence>
 
@@ -175,7 +195,7 @@ export default function Home() {
   return (
     <div data-testid="home-page">
       {/* Hero */}
-      <HeroSlider slides={slides} />
+      <HeroSlider slides={slides} overlay={settings.hero_overlay} />
 
       {/* Trust bar */}
       <section className="border-y border-border bg-white dark:bg-slate-900">
@@ -248,8 +268,7 @@ export default function Home() {
 
       {/* Counters */}
       <section className="py-16 bg-gradient-to-br from-primary/5 via-transparent to-accent/5">
-        <div className="container-x grid grid-cols-2 md:grid-cols-5 gap-8">
-          <Counter target={counters.happy_patients || 12500} label="Happy Patients" suffix="+" icon={Users} />
+        <div className="container-x grid grid-cols-2 md:grid-cols-4 gap-8">
           <Counter target={counters.years_experience || 18} label="Years Experience" suffix="+" icon={Award} />
           <Counter target={counters.treatments_completed || 45000} label="Treatments" suffix="+" icon={Activity} />
           <Counter target={counters.recovery_rate || 96} label="Recovery Rate" suffix="%" icon={HeartPulse} />

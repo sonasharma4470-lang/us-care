@@ -32,12 +32,33 @@ export default function Appointment() {
   const [agree, setAgree] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(null);
+  const [slots, setSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsMsg, setSlotsMsg] = useState("");
 
   useEffect(() => {
     document.title = "Book Appointment — CARE WITH US Physiotherapy";
     api.get("/services").then((r) => setServices(r.data));
     api.get("/doctors").then((r) => setDoctors(r.data));
   }, []);
+
+  // Load slots when doctor or date changes
+  useEffect(() => {
+    if (!form.preferred_date) { setSlots([]); setSlotsMsg(""); return; }
+    setSlotsLoading(true);
+    const doctorId = doctors.find((d) => d.name === form.doctor_name)?.id;
+    api.get("/appointments/available-slots", { params: { date: form.preferred_date, doctor_id: doctorId } })
+      .then((r) => {
+        setSlots(r.data.slots || []);
+        setSlotsMsg(r.data.reason || (r.data.slots?.length === 0 ? "No slots available" : ""));
+        // If chosen time no longer valid, clear it
+        if (form.preferred_time && !(r.data.slots || []).includes(form.preferred_time)) {
+          setForm((f) => ({ ...f, preferred_time: "" }));
+        }
+      })
+      .catch(() => { setSlots([]); setSlotsMsg("Unable to load slots"); })
+      .finally(() => setSlotsLoading(false));
+  }, [form.preferred_date, form.doctor_name, doctors]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -132,10 +153,32 @@ export default function Appointment() {
                 </Select>
               </Field>
               <Field label="Preferred Date">
-                <Input type="date" value={form.preferred_date} onChange={(e) => setForm({ ...form, preferred_date: e.target.value })} data-testid="apt-date-input" />
+                <Input type="date" min={new Date().toISOString().slice(0,10)} value={form.preferred_date} onChange={(e) => setForm({ ...form, preferred_date: e.target.value })} data-testid="apt-date-input" />
               </Field>
               <Field label="Preferred Time">
-                <Input type="time" value={form.preferred_time} onChange={(e) => setForm({ ...form, preferred_time: e.target.value })} data-testid="apt-time-input" />
+                {!form.preferred_date ? (
+                  <div className="text-xs text-muted-foreground py-3 px-3 rounded-md border border-dashed border-border">Select a date first</div>
+                ) : slotsLoading ? (
+                  <div className="text-xs text-muted-foreground py-3 px-3">Loading slots…</div>
+                ) : slots.length === 0 ? (
+                  <div className="text-xs text-destructive py-3 px-3 rounded-md border border-destructive/30 bg-destructive/5" data-testid="apt-no-slots">
+                    {slotsMsg === "closed" ? "Clinic closed on this day" : slotsMsg === "past date" ? "Please choose a future date" : "No slots available"}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 max-h-40 overflow-y-auto" data-testid="apt-slot-grid">
+                    {slots.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setForm({ ...form, preferred_time: s })}
+                        data-testid={`apt-slot-${s}`}
+                        className={`px-2 py-1.5 text-xs rounded-md border ${form.preferred_time === s ? "bg-primary text-primary-foreground border-primary" : "bg-secondary text-foreground/80 border-border hover:border-primary/50"}`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </Field>
               <Field label="Address" icon={MapPin} className="md:col-span-2">
                 <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="For home visits" data-testid="apt-address-input" />

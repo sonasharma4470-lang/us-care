@@ -15,7 +15,10 @@ const empty = {
   name: "", photo: "", qualification: "", specialization: "", experience: "",
   registration_number: "", consultation_fee: "", working_days: "", working_hours: "",
   biography: "", featured: true, active: true, display_order: 0,
+  availability: {}, slot_duration: 30,
 };
+
+const DAYS = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
 
 export default function AdminDoctors() {
   const [items, setItems] = useState([]);
@@ -117,6 +120,35 @@ export default function AdminDoctors() {
             </div>
             <FieldRow label="Photo">
               <ImageUploader value={form.photo || ""} onChange={(url) => setForm({ ...form, photo: url })} kind="doctors" aspect="portrait" testid="doc-form-photo-uploader" />
+            </FieldRow>
+            <FieldRow label="Availability & Time Slots">
+              <div className="space-y-2 rounded-lg border border-border p-3 bg-secondary/30">
+                <div className="flex items-center gap-3">
+                  <Label className="text-xs">Slot duration (min)</Label>
+                  <Input type="number" className="w-24" min={5} max={120} value={form.slot_duration || 30} onChange={(e) => setForm({ ...form, slot_duration: Number(e.target.value) })} data-testid="doc-form-slot-duration" />
+                </div>
+                {DAYS.map((day) => {
+                  const val = (form.availability?.[day] || []).join(", ");
+                  return (
+                    <div key={day} className="grid grid-cols-[110px_1fr] gap-2 items-center">
+                      <Label className="capitalize text-xs">{day}</Label>
+                      <Input
+                        value={val}
+                        placeholder="09:00-13:00, 15:00-20:00 (blank = closed)"
+                        onChange={(e) => {
+                          const ranges = e.target.value.split(",").map(s => s.trim()).filter(Boolean);
+                          const next = { ...(form.availability || {}) };
+                          if (ranges.length) next[day] = ranges; else delete next[day];
+                          setForm({ ...form, availability: next });
+                        }}
+                        data-testid={`doc-form-avail-${day}`}
+                        className="text-xs"
+                      />
+                    </div>
+                  );
+                })}
+                <p className="text-[10px] text-muted-foreground">Format: <code>HH:MM-HH:MM</code>, comma-separated. Empty = closed that day.</p>
+              </div>
             </FieldRow>
             <FieldRow label="Biography">
               <Textarea rows={4} value={form.biography} onChange={(e) => setForm({ ...form, biography: e.target.value })} data-testid="doc-form-bio" />

@@ -86,8 +86,8 @@ export default function AdminSettings() {
       </Section>
 
       <Section title="Counters">
-        <div className="grid sm:grid-cols-5 gap-3">
-          {["happy_patients","years_experience","treatments_completed","recovery_rate","home_visits"].map((k) => (
+        <div className="grid sm:grid-cols-4 gap-3">
+          {["years_experience","treatments_completed","recovery_rate","home_visits"].map((k) => (
             <Field key={k} label={k.replace(/_/g, " ")}>
               <Input type="number" value={form.counters?.[k] ?? 0} onChange={(e) => updateNested("counters", k, e.target.value)} data-testid={`settings-counter-${k}`} />
             </Field>
@@ -203,6 +203,81 @@ export default function AdminSettings() {
       <Section title="Privacy Policy Content">
         <p className="text-xs text-muted-foreground -mt-1">Optional — override the default privacy policy page content with your own text. Leave empty to use the default template.</p>
         <Textarea rows={6} value={form.privacy_policy || ""} onChange={(e) => update("privacy_policy", e.target.value)} placeholder="Your custom privacy policy text (optional)..." />
+      </Section>
+
+      <Section title="Hero Banner Overlay & Height">
+        <p className="text-xs text-muted-foreground -mt-1">Fully customize the tint applied over your hero banner image. Changes reflect instantly after saving.</p>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <label className="flex items-center gap-2 text-sm"><Switch checked={form.hero_overlay?.gradient_enabled !== false} onCheckedChange={(v) => updateNested("hero_overlay", "gradient_enabled", v)} data-testid="settings-hero-gradient-enabled" /> Gradient overlay</label>
+          <Field label="Gradient Direction"><Input value={form.hero_overlay?.gradient_direction || "115deg"} onChange={(e) => updateNested("hero_overlay", "gradient_direction", e.target.value)} placeholder="115deg | to right | to bottom" /></Field>
+          <Field label="Gradient From (rgba)"><Input value={form.hero_overlay?.gradient_from || "rgba(11, 43, 74, 0.85)"} onChange={(e) => updateNested("hero_overlay", "gradient_from", e.target.value)} data-testid="settings-hero-from" /></Field>
+          <Field label="Gradient Via (rgba)"><Input value={form.hero_overlay?.gradient_via || "rgba(11, 143, 211, 0.55)"} onChange={(e) => updateNested("hero_overlay", "gradient_via", e.target.value)} /></Field>
+          <Field label="Gradient To (rgba)"><Input value={form.hero_overlay?.gradient_to || "rgba(13, 148, 136, 0.30)"} onChange={(e) => updateNested("hero_overlay", "gradient_to", e.target.value)} /></Field>
+          <Field label="Solid Color (if gradient off)"><Input value={form.hero_overlay?.color || "#0B2B4A"} onChange={(e) => updateNested("hero_overlay", "color", e.target.value)} /></Field>
+          <Field label="Solid Opacity (0-1)"><Input type="number" step={0.05} min={0} max={1} value={form.hero_overlay?.opacity ?? 0.7} onChange={(e) => updateNested("hero_overlay", "opacity", Number(e.target.value))} /></Field>
+          <Field label="Mobile Height (px)"><Input type="number" value={form.hero_overlay?.mobile_height || ""} onChange={(e) => updateNested("hero_overlay", "mobile_height", Number(e.target.value) || 0)} placeholder="480" /></Field>
+          <Field label="Desktop Height (px)"><Input type="number" value={form.hero_overlay?.desktop_height || ""} onChange={(e) => updateNested("hero_overlay", "desktop_height", Number(e.target.value) || 0)} placeholder="800" /></Field>
+        </div>
+        <p className="text-xs text-muted-foreground">Presets: 
+          <button type="button" className="ml-2 text-primary hover:underline" onClick={() => update("hero_overlay", { gradient_enabled: true, gradient_direction: "115deg", gradient_from: "rgba(11,43,74,0.85)", gradient_via: "rgba(11,143,211,0.55)", gradient_to: "rgba(13,148,136,0.30)" })} data-testid="hero-preset-medical">Medical Blue</button>
+          <button type="button" className="ml-2 text-primary hover:underline" onClick={() => update("hero_overlay", { gradient_enabled: true, gradient_direction: "180deg", gradient_from: "rgba(0,0,0,0.6)", gradient_via: "rgba(0,0,0,0.4)", gradient_to: "rgba(0,0,0,0.2)" })} data-testid="hero-preset-dark">Dark</button>
+          <button type="button" className="ml-2 text-primary hover:underline" onClick={() => update("hero_overlay", { gradient_enabled: false, color: "#000000", opacity: 0.15 })}>Transparent Dark</button>
+          <button type="button" className="ml-2 text-primary hover:underline" onClick={() => update("hero_overlay", { gradient_enabled: false, color: "#ffffff", opacity: 0.25 })}>White Overlay</button>
+        </p>
+      </Section>
+
+      <Section title="Homepage Trust Bar Statistics">
+        <p className="text-xs text-muted-foreground -mt-1">Small stat items shown just below the hero (e.g., "IAP Registered", "18+ Years Experience").</p>
+        <div className="space-y-2">
+          {(form.homepage_stats || []).map((s, idx) => (
+            <div key={idx} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2" data-testid={`settings-stat-${idx}`}>
+              <Input placeholder="Icon name (Award, Users, Star...)" value={s.icon || ""} onChange={(e) => { const next = [...form.homepage_stats]; next[idx] = { ...next[idx], icon: e.target.value }; update("homepage_stats", next); }} />
+              <Input placeholder="Label" value={s.label || ""} onChange={(e) => { const next = [...form.homepage_stats]; next[idx] = { ...next[idx], label: e.target.value }; update("homepage_stats", next); }} />
+              <Input placeholder="Value (e.g., 12,500+)" value={s.value || ""} onChange={(e) => { const next = [...form.homepage_stats]; next[idx] = { ...next[idx], value: e.target.value }; update("homepage_stats", next); }} />
+              <Button type="button" variant="outline" size="sm" onClick={() => { const next = [...form.homepage_stats]; next.splice(idx, 1); update("homepage_stats", next); }} data-testid={`settings-stat-remove-${idx}`}>×</Button>
+            </div>
+          ))}
+          <Button type="button" variant="outline" size="sm" onClick={() => update("homepage_stats", [...(form.homepage_stats || []), { icon: "Award", label: "New Stat", value: "0" }])} data-testid="settings-stat-add">+ Add Stat</Button>
+        </div>
+      </Section>
+
+      <Section title="Appointment Status Templates">
+        <p className="text-xs text-muted-foreground -mt-1">Sent to the patient when you change appointment status. Placeholders: <code>{"{{name}} {{code}} {{service}} {{doctor}} {{date}} {{time}} {{clinic}}"}</code></p>
+        {["confirmed","cancelled","rescheduled"].map((st) => (
+          <div key={st} className="space-y-2 rounded-lg border border-border p-3 bg-secondary/30">
+            <div className="text-xs font-semibold uppercase tracking-widest capitalize">{st}</div>
+            <Textarea rows={3} placeholder={`Email body for ${st}`} value={form.status_templates?.[`${st}_email`] || ""} onChange={(e) => updateNested("status_templates", `${st}_email`, e.target.value)} data-testid={`settings-tpl-${st}-email`} />
+            <Textarea rows={3} placeholder={`WhatsApp body for ${st}`} value={form.status_templates?.[`${st}_whatsapp`] || ""} onChange={(e) => updateNested("status_templates", `${st}_whatsapp`, e.target.value)} data-testid={`settings-tpl-${st}-whatsapp`} />
+          </div>
+        ))}
+      </Section>
+
+      <Section title="SEO">
+        <div className="grid sm:grid-cols-2 gap-3">
+          <Field label="Meta Title"><Input value={form.seo?.title || ""} onChange={(e) => updateNested("seo", "title", e.target.value)} /></Field>
+          <Field label="Meta Description" className="sm:col-span-2"><Textarea rows={2} value={form.seo?.description || ""} onChange={(e) => updateNested("seo", "description", e.target.value)} /></Field>
+          <Field label="Meta Keywords"><Input value={form.seo?.keywords || ""} onChange={(e) => updateNested("seo", "keywords", e.target.value)} placeholder="physiotherapy, Jaipur, rehab" /></Field>
+          <Field label="OG Image URL"><Input value={form.seo?.og_image || ""} onChange={(e) => updateNested("seo", "og_image", e.target.value)} /></Field>
+        </div>
+      </Section>
+
+      <Section title="Analytics">
+        <div className="grid sm:grid-cols-2 gap-3">
+          <Field label="Google Analytics ID"><Input value={form.analytics?.google_analytics_id || ""} onChange={(e) => updateNested("analytics", "google_analytics_id", e.target.value)} placeholder="G-XXXXXXXXXX" data-testid="settings-ga-id" /></Field>
+          <Field label="Google Search Console Verification"><Input value={form.analytics?.search_console_id || ""} onChange={(e) => updateNested("analytics", "search_console_id", e.target.value)} /></Field>
+          <Field label="Meta Pixel ID"><Input value={form.analytics?.meta_pixel_id || ""} onChange={(e) => updateNested("analytics", "meta_pixel_id", e.target.value)} placeholder="Future" /></Field>
+        </div>
+      </Section>
+
+      <Section title="Maintenance Mode">
+        <div className="flex items-center gap-3">
+          <Switch checked={!!form.maintenance?.enabled} onCheckedChange={(v) => updateNested("maintenance", "enabled", v)} data-testid="settings-maintenance-enabled" />
+          <span className="text-sm">Enable maintenance mode (visitors see maintenance page; admin still accessible)</span>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <Field label="Title"><Input value={form.maintenance?.title || ""} onChange={(e) => updateNested("maintenance", "title", e.target.value)} placeholder="We'll be right back" /></Field>
+          <Field label="Message" className="sm:col-span-2"><Textarea rows={3} value={form.maintenance?.message || ""} onChange={(e) => updateNested("maintenance", "message", e.target.value)} placeholder="Our website is undergoing scheduled maintenance." /></Field>
+        </div>
       </Section>
     </form>
   );

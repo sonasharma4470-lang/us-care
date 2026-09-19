@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, Calendar as CalIcon, User, Phone as PhoneIcon, MapPin, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
@@ -43,22 +43,48 @@ export default function Appointment() {
   }, []);
 
   // Load slots when doctor or date changes
-  useEffect(() => {
-    if (!form.preferred_date) { setSlots([]); setSlotsMsg(""); return; }
-    setSlotsLoading(true);
-    const doctorId = doctors.find((d) => d.name === form.doctor_name)?.id;
-    api.get("/appointments/available-slots", { params: { date: form.preferred_date, doctor_id: doctorId } })
-      .then((r) => {
-        setSlots(r.data.slots || []);
-        setSlotsMsg(r.data.reason || (r.data.slots?.length === 0 ? "No slots available" : ""));
-        // If chosen time no longer valid, clear it
-        if (form.preferred_time && !(r.data.slots || []).includes(form.preferred_time)) {
-          setForm((f) => ({ ...f, preferred_time: "" }));
+ useEffect(() => {
+  if (!form.preferred_date) {
+    setSlots([]);
+    setSlotsMsg("");
+    return;
+  }
+
+  setSlotsLoading(true);
+
+  const doctorId = doctors.find(
+    (d) => d.name === form.doctor_name
+  )?.id;
+
+  api.get("/appointments/available-slots", {
+    params: {
+      date: form.preferred_date,
+      doctor_id: doctorId,
+    },
+  })
+    .then((r) => {
+      setSlots(r.data.slots || []);
+      setSlotsMsg(
+        r.data.reason ||
+        (r.data.slots?.length === 0 ? "No slots available" : "")
+      );
+
+      setForm((f) => {
+        if (
+          f.preferred_time &&
+          !(r.data.slots || []).includes(f.preferred_time)
+        ) {
+          return { ...f, preferred_time: "" };
         }
-      })
-      .catch(() => { setSlots([]); setSlotsMsg("Unable to load slots"); })
-      .finally(() => setSlotsLoading(false));
-  }, [form.preferred_date, form.doctor_name, doctors]);
+        return f;
+      });
+    })
+    .catch(() => {
+      setSlots([]);
+      setSlotsMsg("Unable to load slots");
+    })
+    .finally(() => setSlotsLoading(false));
+}, [form.preferred_date, form.doctor_name, doctors]);
 
   const submit = async (e) => {
     e.preventDefault();

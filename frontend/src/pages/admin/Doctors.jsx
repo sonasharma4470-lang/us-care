@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Plus, Edit2, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
@@ -26,11 +26,14 @@ export default function AdminDoctors() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(empty);
 
-  const load = async () => {
-    const { data } = await api.get("/doctors", { params: { active: false } });
-    setItems(data);
-  };
-  useEffect(() => { load(); }, []);
+  const load = useCallback(async () => {
+  const { data } = await api.get("/doctors", { params: { active: false } });
+  setItems(data);
+}, []);
+
+useEffect(() => {
+  load();
+}, [load]);
 
   const startCreate = () => { setEditing(null); setForm(empty); setOpen(true); };
   const startEdit = (d) => { setEditing(d); setForm({ ...empty, ...d }); setOpen(true); };

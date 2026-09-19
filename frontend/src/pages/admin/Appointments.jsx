@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, Trash2, Filter } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
@@ -21,14 +21,16 @@ export default function AdminAppointments() {
   const [items, setItems] = useState([]);
   const [filter, setFilter] = useState("all");
 
-  const load = async () => {
-    const params = filter !== "all" ? { status_filter: filter } : {};
-    const { data } = await api.get("/admin/appointments", { params });
-    setItems(data);
-  };
+  const load = useCallback(async () => {
+  const params = filter !== "all" ? { status_filter: filter } : {};
+  const { data } = await api.get("/admin/appointments", { params });
+  setItems(data);
+}, [filter]);
 
-  useEffect(() => { load(); }, [filter]);
-
+useEffect(() => {
+  load();
+}, [load]);
+  
   const updateStatus = async (id, status) => {
     try {
       await api.patch(`/admin/appointments/${id}`, { status });
